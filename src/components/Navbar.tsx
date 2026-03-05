@@ -6,7 +6,13 @@ import { Link } from "react-router-dom";
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const links = ["Home", "Shop", "Categories", "About", "Contact"];
+  const links = [
+    { label: "Home", to: "/" },
+    { label: "Shop", to: "/shop" },
+    { label: "Categories", to: "#" },
+    { label: "About", to: "#" },
+    { label: "Contact", to: "#" },
+  ];
 
   return (
     <nav className="sticky top-0 z-50 bg-background/95 backdrop-blur-md border-b border-border">
@@ -22,13 +28,13 @@ const Navbar = () => {
 
         <div className="hidden md:flex items-center gap-8">
           {links.map((link) => (
-            <a
-              key={link}
-              href="#"
+            <Link
+              key={link.label}
+              to={link.to}
               className="text-muted-foreground hover:text-primary font-medium text-sm transition-colors duration-200"
             >
-              {link}
-            </a>
+              {link.label}
+            </Link>
           ))}
         </div>
 
@@ -58,13 +64,14 @@ const Navbar = () => {
       {mobileOpen && (
         <div className="md:hidden bg-background border-b border-border px-4 pb-4 animate-fade-in">
           {links.map((link) => (
-            <a
-              key={link}
-              href="#"
+            <Link
+              key={link.label}
+              to={link.to}
               className="block py-2 text-muted-foreground hover:text-primary font-medium transition-colors"
+              onClick={() => setMobileOpen(false)}
             >
-              {link}
-            </a>
+              {link.label}
+            </Link>
           ))}
           <Button className="w-full mt-3" size="sm" asChild><Link to="/login">Sign In</Link></Button>
         </div>
