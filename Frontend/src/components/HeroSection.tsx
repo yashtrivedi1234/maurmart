@@ -9,37 +9,8 @@ import {
   RotateCcw,
   ShoppingBag,
 } from "lucide-react";
-
-/* ─── Slide data ─── */
-const slides = [
-  {
-    id: 0,
-    image:
-      "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1600&q=80",
-    badge: "� Top Tech at Unbeatable Prices",
-    heading: "The Latest in Tech,",
-    highlight: "Delivered Fast",
-    sub: "Upgrade your lifestyle with our premium selection of laptops, smartphones, and accessories.",
-  },
-  {
-    id: 1,
-    image:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=1600&q=80",
-    badge: "🎧 Premium Audio Gear",
-    heading: "Immersive Sound,",
-    highlight: "Crystal Clear",
-    sub: "Experience music like never before with top-tier headphones and speakers from leading brands.",
-  },
-  {
-    id: 2,
-    image:
-      "https://images.unsplash.com/photo-1526406915894-7bcd65f60845?w=1600&q=80",
-    badge: "🔌 Ultimate Electronics",
-    heading: "Premium Electronics,",
-    highlight: "At Your Fingertips",
-    sub: "From gaming consoles to home entertainment systems, discover electronics that elevate your experience.",
-  },
-];
+import { useGetHeroSlidesQuery } from "@/redux/api";
+import { HeroSlide } from "@/types";
 
 /* ─── Trust bar items ─── */
 const trust = [
@@ -100,6 +71,8 @@ const imgVariant: Variants = {
 };
 
 export default function HeroSection() {
+  const { data: slides = [], isLoading } = useGetHeroSlidesQuery({});
+
   const [current, setCurrent] = useState(0);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true }, [
     Autoplay({ delay: 3000, stopOnInteraction: false }),
@@ -123,6 +96,16 @@ export default function HeroSection() {
     [emblaApi],
   );
 
+  if (isLoading || !slides.length) {
+    return (
+      <section className="relative h-[92vh] min-h-[560px] flex items-center justify-center bg-background">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 rounded-full border-t-2 border-primary animate-spin" />
+        </div>
+      </section>
+    );
+  }
+
   const slide = slides[current];
 
   return (
@@ -132,8 +115,8 @@ export default function HeroSection() {
         {/* Embla (hidden but drives logic) */}
         <div className="absolute inset-0 overflow-hidden" ref={emblaRef}>
           <div className="flex h-full">
-            {slides.map((s) => (
-              <div key={s.id} className="flex-[0_0_100%] min-w-0 h-full" />
+            {slides.map((s: HeroSlide) => (
+              <div key={s._id} className="flex-[0_0_100%] min-w-0 h-full" />
             ))}
           </div>
         </div>

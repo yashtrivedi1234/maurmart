@@ -4,32 +4,30 @@ import { motion } from "framer-motion";
 import { Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import API from "../../api/api.js";
+import { useLoginMutation } from "@/redux/api";
 import Navbar from "@/components/Navbar";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [login, { isLoading }] = useLoginMutation();
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     try {
-      const res = await API.post("/auth/login", { email, password });
-      localStorage.setItem("token", res.data.token);
+      const res = await login({ email, password }).unwrap();
+      localStorage.setItem("token", res.token);
       toast.success("Login Successful", {
         description: "Welcome back to Maurya Mart!",
       });
       navigate("/");
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as any;
       toast.error("Login Failed", {
-        description: error.response?.data?.message || "Invalid credentials. Please try again.",
+        description: error?.data?.message || "Invalid credentials. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

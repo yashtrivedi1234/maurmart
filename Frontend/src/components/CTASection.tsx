@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
+import { useSubscribeNewsletterMutation } from "@/redux/api";
 
 const bgImages = [
   "https://images.unsplash.com/photo-1543512214-318c7553f230?w=1600&q=80", // Smart Speaker (Desk piece / smile-like design element)
@@ -12,6 +14,8 @@ const bgImages = [
 
 const CTASection = () => {
   const [currentBg, setCurrentBg] = useState(0);
+  const [email, setEmail] = useState("");
+  const [subscribe, { isLoading }] = useSubscribeNewsletterMutation();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -19,6 +23,18 @@ const CTASection = () => {
     }, 3000); // 3 seconds
     return () => clearInterval(timer);
   }, []);
+
+  const handleSubscribe = async () => {
+    if (!email) return toast.error("Please enter your email address.");
+    try {
+      await subscribe(email).unwrap();
+      toast.success("Subscribed successfully!");
+      setEmail("");
+    } catch (err: unknown) {
+      const error = err as any;
+      toast.error(error?.data?.message || "Failed to subscribe. Please try again.");
+    }
+  };
 
   return (
     <section className="py-16">
@@ -68,10 +84,17 @@ const CTASection = () => {
               <input
                 type="email"
                 placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 px-5 py-3 rounded-full bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary-foreground/30 text-sm transition-all hover:bg-primary-foreground/20"
               />
-              <Button variant="hero-outline" className="rounded-full px-6 transition-transform hover:scale-105 active:scale-95">
-                Subscribe <ArrowRight className="ml-1 h-4 w-4" />
+              <Button 
+                onClick={handleSubscribe} 
+                disabled={isLoading}
+                variant="hero-outline" 
+                className="rounded-full px-6 transition-transform hover:scale-105 active:scale-95"
+              >
+                {isLoading ? "Subscribing..." : "Subscribe"} <ArrowRight className="ml-1 h-4 w-4" />
               </Button>
             </motion.div>
           </div>

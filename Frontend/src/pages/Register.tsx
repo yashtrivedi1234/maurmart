@@ -4,30 +4,28 @@ import { motion } from "framer-motion";
 import { Mail, Lock, User, ArrowRight, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import API from "../../api/api.js";
+import { useRegisterMutation } from "@/redux/api";
 import Navbar from "@/components/Navbar";
 
 const Register = () => {
   const [form, setForm] = useState({ name: "", email: "", password: "" });
-  const [isLoading, setIsLoading] = useState(false);
+  const [register, { isLoading }] = useRegisterMutation();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     try {
-      await API.post("/auth/register", form);
+      await register(form).unwrap();
       toast.success("Registration Successful", {
         description: "Your account has been created! You can now log in.",
       });
       navigate("/login");
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as any;
       toast.error("Registration Failed", {
-        description: error.response?.data?.message || "Something went wrong. Please try again.",
+        description: error?.data?.message || "Something went wrong. Please try again.",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

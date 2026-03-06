@@ -6,6 +6,9 @@ import mongoose from "mongoose";
 import cors from "cors";
 
 import authRoutes from "./routes/auth.Routes.js";
+import productRoutes from "./routes/product.Routes.js";
+import newsletterRoutes from "./routes/newsletter.Routes.js";
+import heroRoutes from "./routes/hero.Routes.js";
 
 const app = express();
 
@@ -23,6 +26,9 @@ mongoose
   .catch((err) => console.log("MongoDB Error ❌", err.message));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
+app.use("/api/newsletter", newsletterRoutes);
+app.use("/api/heroes", heroRoutes);
 
 app.listen(process.env.PORT || 5001, () => {
   console.log(`Server running on port ${process.env.PORT || 5001} 🚀`);

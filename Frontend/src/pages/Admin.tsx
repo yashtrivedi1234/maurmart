@@ -1,57 +1,80 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Plus, Save, Image as ImageIcon, ArrowLeft } from "lucide-react";
+import { Trash2, Plus, Image as ImageIcon, ArrowLeft, Loader2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { 
+  useGetHeroSlidesQuery, 
+  useAddHeroSlideMutation, 
+  useDeleteHeroSlideMutation,
+  useGetProductsQuery,
+  useUpdateProductStatusMutation
+} from "@/redux/api";
+import { HeroSlide, Product } from "@/types";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 
 export default function Admin() {
-  const [images, setImages] = useState<string[]>([]);
-  const [newImageUrl, setNewImageUrl] = useState("");
   const { toast } = useToast();
+  
+  // Hero Slide State & Hooks
+  const { data: slides = [], isLoading: slidesLoading } = useGetHeroSlidesQuery({});
+  const [addSlide, { isLoading: isAdding }] = useAddHeroSlideMutation();
+  const [deleteSlide] = useDeleteHeroSlideMutation();
+  const [newImage, setNewImage] = useState({ image: "", badge: "", heading: "", highlight: "", sub: "" });
 
-  useEffect(() => {
-    // Load existing images from localStorage on mount
-    const savedImages = localStorage.getItem("heroSliderImages");
-    if (savedImages) {
-      try {
-        setImages(JSON.parse(savedImages));
-      } catch (e) {
-        console.error("Failed to parse saved images", e);
-      }
-    }
-  }, []);
+  // Product State & Hooks
+  const { data: products = [], isLoading: productsLoading } = useGetProductsQuery({});
+  const [updateProductStatus] = useUpdateProductStatusMutation();
 
-  const handleAddImage = () => {
-    if (!newImageUrl.trim()) {
+  const handleAddSlide = async () => {
+    if (!newImage.image || !newImage.heading) {
       toast({
         title: "Error",
-        description: "Please enter a valid image URL.",
+        description: "Image URL and Heading are mandatory fields.",
         variant: "destructive",
       });
       return;
     }
     
-    // Add simple validation if needed, for instance, checking if it starts with http
-    setImages((prev) => [...prev, newImageUrl.trim()]);
-    setNewImageUrl("");
+    try {
+      await addSlide({
+        image: newImage.image,
+        badge: newImage.badge || "✨ New",
+        heading: newImage.heading,
+        highlight: newImage.highlight || "",
+        sub: newImage.sub || "Description here"
+      }).unwrap();
+      
+      toast({ title: "Success", description: "Slide added successfully!" });
+      setNewImage({ image: "", badge: "", heading: "", highlight: "", sub: "" });
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.data?.message || "Failed to add slide", variant: "destructive" });
+    }
   };
 
-  const handleRemoveImage = (indexToRemove: number) => {
-    setImages((prev) => prev.filter((_, index) => index !== indexToRemove));
+  const handleRemoveSlide = async (id: string) => {
+    try {
+      await deleteSlide(id).unwrap();
+      toast({ title: "Success", description: "Slide removed successfully!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to remove slide", variant: "destructive" });
+    }
   };
 
-  const handleSave = () => {
-    localStorage.setItem("heroSliderImages", JSON.stringify(images));
-    toast({
-      title: "Success",
-      description: "Hero slider images have been saved successfully.",
-    });
+  const handleToggleProduct = async (id: string, field: string, currentValue: boolean) => {
+    try {
+      await updateProductStatus({ id, [field]: !currentValue }).unwrap();
+      toast({ title: "Success", description: "Product status updated!" });
+    } catch (error: any) {
+      toast({ title: "Error", description: "Failed to update product", variant: "destructive" });
+    }
   };
 
   return (
     <div className="min-h-screen bg-background p-8">
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-6xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div>
             <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
@@ -60,75 +83,110 @@ export default function Admin() {
             </Link>
             <h1 className="text-3xl font-bold flex items-center gap-2 text-foreground">
               <ImageIcon className="w-8 h-8 text-primary" />
-              Admin Panel
+              Admin Dashboard
             </h1>
-            <p className="text-muted-foreground mt-2">Manage your store's configuration and content.</p>
+            <p className="text-muted-foreground mt-2">Manage your Hero Slider and Product Highlights.</p>
           </div>
-          <Button onClick={handleSave} className="gap-2" size="lg">
-            <Save className="w-4 h-4" />
-            Save Changes
-          </Button>
         </div>
 
-        <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-xl font-semibold mb-1">Hero Slider Images</h2>
-            <p className="text-sm text-muted-foreground">Add or remove images displayed in the main homepage slider.</p>
-          </div>
-          
-          <div className="p-6 space-y-6">
-            <div className="flex gap-3 items-end">
-              <div className="flex-1 space-y-2">
-                <label className="text-sm font-medium">Add New Image URL</label>
-                <Input
-                  placeholder="https://example.com/image.jpg"
-                  value={newImageUrl}
-                  onChange={(e) => setNewImageUrl(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleAddImage()}
-                />
-              </div>
-              <Button onClick={handleAddImage} variant="secondary" className="gap-2">
-                <Plus className="w-4 h-4" /> Add
-              </Button>
-            </div>
+        <Tabs defaultValue="hero">
+          <TabsList className="mb-4">
+            <TabsTrigger value="hero">Hero Slider config</TabsTrigger>
+            <TabsTrigger value="products">Product Status Configuration</TabsTrigger>
+          </TabsList>
 
-            {images.length === 0 ? (
-              <div className="text-center py-12 bg-muted/30 rounded-lg border border-dashed border-border">
-                <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-20" />
-                <p className="text-muted-foreground">No images added yet.</p>
-                <p className="text-sm text-muted-foreground/60 mt-1">Add some image URLs above to get started.</p>
+          {/* HERO SLIDER TAB */}
+          <TabsContent value="hero">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden mb-8">
+              <div className="p-6 border-b border-border">
+                <h2 className="text-xl font-semibold mb-1">Add New Slide</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <Input placeholder="Image URL *" value={newImage.image} onChange={(e) => setNewImage({...newImage, image: e.target.value})} />
+                  <Input placeholder="Heading *" value={newImage.heading} onChange={(e) => setNewImage({...newImage, heading: e.target.value})} />
+                  <Input placeholder="Highlight Word" value={newImage.highlight} onChange={(e) => setNewImage({...newImage, highlight: e.target.value})} />
+                  <Input placeholder="Badge Text" value={newImage.badge} onChange={(e) => setNewImage({...newImage, badge: e.target.value})} />
+                  <Input placeholder="Subtext Description" className="md:col-span-2" value={newImage.sub} onChange={(e) => setNewImage({...newImage, sub: e.target.value})} />
+                </div>
+                <div className="mt-4 flex justify-end">
+                  <Button onClick={handleAddSlide} disabled={isAdding}>
+                    {isAdding ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Plus className="w-4 h-4 mr-2" />} Add Slide
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {images.map((url, index) => (
-                  <div key={index} className="group relative rounded-lg border border-border overflow-hidden bg-muted aspect-video flex items-center justify-center">
-                    <img
-                      src={url}
-                      alt={`Slider input ${index + 1}`}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://placehold.co/600x400?text=Invalid+Image+URL';
-                      }}
-                    />
-                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <Button
-                        variant="destructive"
-                        size="icon"
-                        onClick={() => handleRemoveImage(index)}
-                        className="rounded-full shadow-lg"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 truncate">
-                      {url}
-                    </div>
+
+              <div className="p-6">
+                <h3 className="font-semibold mb-4 text-lg">Current Slides</h3>
+                {slidesLoading ? (
+                  <div className="flex justify-center p-8"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>
+                ) : slides.length === 0 ? (
+                  <p className="text-muted-foreground">No slides available.</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {slides.map((slide: HeroSlide) => (
+                      <div key={slide._id} className="relative rounded-lg overflow-hidden border">
+                        <img src={slide.image} alt="Hero Slide" className="w-full h-48 object-cover" />
+                        <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center space-x-2">
+                           <Button variant="destructive" size="icon" onClick={() => handleRemoveSlide(slide._id)}>
+                             <Trash2 className="w-4 h-4" />
+                           </Button>
+                        </div>
+                        <div className="p-3 bg-card border-t text-sm">
+                          <p className="font-bold truncate">{slide.heading} <span className="text-primary">{slide.highlight}</span></p>
+                          <p className="text-muted-foreground text-xs truncate">{slide.sub}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </TabsContent>
+
+          {/* PRODUCTS CONFIG TAB */}
+          <TabsContent value="products">
+            <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
+                <div className="p-6">
+                  <h2 className="text-xl font-semibold mb-4">Manage Product Flags</h2>
+                  
+                  {productsLoading ? (
+                    <div className="flex justify-center p-8"><Loader2 className="animate-spin w-8 h-8 text-primary" /></div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                       <table className="w-full text-left text-sm whitespace-nowrap">
+                         <thead className="border-b bg-muted/50">
+                           <tr>
+                              <th className="px-4 py-3 font-medium">Product</th>
+                              <th className="px-4 py-3 font-medium text-center">Featured</th>
+                              <th className="px-4 py-3 font-medium text-center">New Arrival</th>
+                              <th className="px-4 py-3 font-medium text-center">Trending</th>
+                           </tr>
+                         </thead>
+                         <tbody className="divide-y divide-border">
+                            {products.map((p: Product) => (
+                              <tr key={p._id} className="hover:bg-muted/30">
+                                 <td className="px-4 py-3 flex items-center gap-3">
+                                   <img src={p.image.startsWith('http') ? p.image : `https://placehold.co/40x40?text=${p.image}`} className="w-10 h-10 rounded object-cover" />
+                                   <span className="font-medium">{p.name}</span>
+                                 </td>
+                                 <td className="px-4 py-3 text-center">
+                                    <Switch checked={!!p.isFeatured} onCheckedChange={() => handleToggleProduct(p._id, 'isFeatured', !!p.isFeatured)} />
+                                 </td>
+                                 <td className="px-4 py-3 text-center">
+                                    <Switch checked={!!p.isNewArrival} onCheckedChange={() => handleToggleProduct(p._id, 'isNewArrival', !!p.isNewArrival)} />
+                                 </td>
+                                 <td className="px-4 py-3 text-center">
+                                    <Switch checked={!!p.isTrending} onCheckedChange={() => handleToggleProduct(p._id, 'isTrending', !!p.isTrending)} />
+                                 </td>
+                              </tr>
+                            ))}
+                         </tbody>
+                       </table>
+                    </div>
+                  )}
+                </div>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

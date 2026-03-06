@@ -1,14 +1,9 @@
-import { Star, ShoppingCart, Sparkles } from "lucide-react";
+import { Star, ShoppingCart, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const newProducts = [
-  { id: 1, name: "Air Purifier Mini", price: 2499, mrp: 4999, rating: 4.6, image: "🌬️", badge: "New" },
-  { id: 2, name: "Bamboo Water Bottle", price: 599, mrp: 999, rating: 4.8, image: "🎋", badge: "Eco" },
-  { id: 3, name: "Wireless Charger Pad", price: 799, mrp: 1499, rating: 4.4, image: "🔋", badge: "New" },
-  { id: 4, name: "Organic Face Serum", price: 449, mrp: 899, rating: 4.7, image: "🧴", badge: "Trending" },
-];
-
+import { useGetNewArrivalsQuery } from "@/redux/api";
+import { Product } from "@/types";
 const NewArrivals = () => {
+  const { data: newProducts, isLoading, error } = useGetNewArrivalsQuery({});
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
@@ -21,11 +16,26 @@ const NewArrivals = () => {
         <p className="text-muted-foreground mb-10">Fresh additions to our collection this week</p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {newProducts.map((product) => {
-            const discount = Math.round(((product.mrp - product.price) / product.mrp) * 100);
+          {isLoading && (
+            <div className="col-span-full flex justify-center py-10 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          )}
+          {error && (
+            <div className="col-span-full text-center text-destructive py-10">
+              Failed to load new arrivals.
+            </div>
+          )}
+          {newProducts && newProducts.length === 0 && (
+            <div className="col-span-full text-center text-muted-foreground py-10">
+              No new arrivals found.
+            </div>
+          )}
+          {newProducts && newProducts.map((product: Product) => {
+            const discount = product.originalPrice ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100) : 0;
             return (
               <div
-                key={product.id}
+                key={product._id}
                 className="group bg-card rounded-xl overflow-hidden card-shadow hover:card-shadow-hover hover:-translate-y-1 transition-all duration-300 border border-border"
               >
                 <div className="relative bg-accent/40 h-44 md:h-52 flex items-center justify-center">
@@ -33,11 +43,13 @@ const NewArrivals = () => {
                     {product.image}
                   </span>
                   <span className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-md">
-                    {product.badge}
+                    New
                   </span>
-                  <span className="absolute top-3 right-3 bg-card text-foreground text-xs font-semibold px-2 py-1 rounded-md border border-border">
-                    -{discount}%
-                  </span>
+                  {discount > 0 && (
+                    <span className="absolute top-3 right-3 bg-card text-foreground text-xs font-semibold px-2 py-1 rounded-md border border-border">
+                      -{discount}%
+                    </span>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold text-sm text-foreground mb-2 line-clamp-1">
@@ -50,7 +62,7 @@ const NewArrivals = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="font-bold text-foreground">₹{product.price}</span>
-                      <span className="text-xs text-muted-foreground line-through ml-1.5">₹{product.mrp}</span>
+                      {product.originalPrice && <span className="text-xs text-muted-foreground line-through ml-1.5">₹{product.originalPrice}</span>}
                     </div>
                     <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full bg-accent hover:bg-primary hover:text-primary-foreground transition-colors">
                       <ShoppingCart className="h-4 w-4" />
