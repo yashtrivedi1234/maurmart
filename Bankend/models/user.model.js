@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
     otp: { type: String },
     otpExpires: { type: Date },
     profilePic: { type: String, default: "" },
+    profilePic_public_id: { type: String, default: "" },
     phone: { type: String, default: "" },
   },
   { timestamps: true }

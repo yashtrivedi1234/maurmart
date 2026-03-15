@@ -6,6 +6,9 @@ const heroSlideSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    image_public_id: {
+      type: String,
+    },
     badge: {
       type: String,
       default: "✨ New Update",

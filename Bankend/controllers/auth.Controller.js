@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -195,19 +196,21 @@ export const uploadProfilePic = async (req, res) => {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Delete old local profile pic if it exists
-    if (user.profilePic && user.profilePic.includes("http://localhost:5001/uploads/")) {
-      const oldFileName = user.profilePic.split("/").pop();
-      const oldFilePath = path.join(__dirname, "..", "uploads", oldFileName);
-      if (fs.existsSync(oldFilePath)) {
-        fs.unlinkSync(oldFilePath);
-      }
+    // Delete old profile pic from Cloudinary if it exists
+    if (user.profilePic_public_id) {
+      await deleteFromCloudinary(user.profilePic_public_id);
     }
 
-    // Store the new path
-    const profilePicPath = `http://localhost:5001/uploads/${req.file.filename}`;
-    user.profilePic = profilePicPath;
-    await user.save();
+    // Upload the new one to Cloudinary
+    const result = await uploadToCloudinary(req.file.path, "profiles");
+    
+    if (result) {
+      user.profilePic = result.url;
+      user.profilePic_public_id = result.public_id;
+      await user.save();
+    } else {
+      return res.status(500).json({ message: "Failed to upload image to Cloudinary" });
+    }
 
     const updatedUser = await User.findById(req.user.id).select("-password");
     res.json(updatedUser);

@@ -1,4 +1,5 @@
 import { HeroSlide } from "../models/hero.model.js";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 // @desc    Get all hero slides
 // @route   GET /api/heroes
@@ -31,12 +32,19 @@ export const createHeroSlide = async (req, res) => {
     const { badge, heading, highlight, sub } = req.body;
     
     let imageUrl = req.body.image;
+    let publicId = "";
+
     if (req.file) {
-      imageUrl = `http://localhost:5001/uploads/${req.file.filename}`;
+      const result = await uploadToCloudinary(req.file.path, "hero");
+      if (result) {
+        imageUrl = result.url;
+        publicId = result.public_id;
+      }
     }
 
     const slide = new HeroSlide({
       image: imageUrl,
+      image_public_id: publicId,
       badge,
       heading,
       highlight,
@@ -58,6 +66,9 @@ export const deleteHeroSlide = async (req, res) => {
     const slide = await HeroSlide.findById(req.params.id);
 
     if (slide) {
+      if (slide.image_public_id) {
+        await deleteFromCloudinary(slide.image_public_id);
+      }
       await slide.deleteOne();
       res.json({ message: "Slide removed" });
     } else {
@@ -76,7 +87,16 @@ export const updateHeroSlide = async (req, res) => {
 
     if (slide) {
         if (req.file) {
-            slide.image = `http://localhost:5001/uploads/${req.file.filename}`;
+            // Delete old one
+            if (slide.image_public_id) {
+                await deleteFromCloudinary(slide.image_public_id);
+            }
+            // Upload new one
+            const result = await uploadToCloudinary(req.file.path, "hero");
+            if (result) {
+                slide.image = result.url;
+                slide.image_public_id = result.public_id;
+            }
         } else if (req.body.image) {
             slide.image = req.body.image;
         }

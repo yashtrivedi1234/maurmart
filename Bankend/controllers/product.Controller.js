@@ -2,6 +2,7 @@ import { Product } from "../models/product.model.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,10 +86,15 @@ export const createProduct = async (req, res) => {
   try {
     const { name, price, originalPrice, description, category, rating, reviews, stock, isFeatured, isNewArrival, isTrending } = req.body;
     
-    // Use the uploaded file path if available
-    let imageUrl = req.body.image; // Fallback to provided URL if no file
+    // Use Cloudinary if a file is uploaded
+    let imageUrl = req.body.image; 
+    let publicId = "";
     if (req.file) {
-      imageUrl = `http://localhost:5001/uploads/${req.file.filename}`;
+      const result = await uploadToCloudinary(req.file.path, "products");
+      if (result) {
+        imageUrl = result.url;
+        publicId = result.public_id;
+      }
     }
 
     const product = new Product({
@@ -97,6 +103,7 @@ export const createProduct = async (req, res) => {
       originalPrice,
       description,
       image: imageUrl,
+      image_public_id: publicId,
       category,
       rating: rating || 0,
       reviews: reviews || 0,
@@ -121,17 +128,17 @@ export const updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (product) {
-      // If a new file is uploaded
+      // If a new file is uploaded to Cloudinary
       if (req.file) {
-        // Delete old image if it was a local upload
-        if (product.image && product.image.includes("http://localhost:5001/uploads/")) {
-          const oldFileName = product.image.split("/").pop();
-          const oldFilePath = path.join(__dirname, "..", "uploads", oldFileName);
-          if (fs.existsSync(oldFilePath)) {
-            fs.unlinkSync(oldFilePath);
-          }
+        // Delete old one if it exists
+        if (product.image_public_id) {
+          await deleteFromCloudinary(product.image_public_id);
         }
-        product.image = `http://localhost:5001/uploads/${req.file.filename}`;
+        const result = await uploadToCloudinary(req.file.path, "products");
+        if (result) {
+          product.image = result.url;
+          product.image_public_id = result.public_id;
+        }
       } else if (req.body.image) {
         product.image = req.body.image;
       }
@@ -163,16 +170,36 @@ export const updateProduct = async (req, res) => {
 // @access  Private/Admin
 export const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const { id } = req.params;
+    console.log(`Attempting to delete product with ID: ${id}`);
 
-    if (product) {
-      await Product.deleteOne({ _id: product._id });
-      res.json({ message: "Product removed" });
-    } else {
-      res.status(404).json({ message: "Product not found" });
+    const product = await Product.findById(id);
+
+    if (!product) {
+      console.log(`Product with ID ${id} not found`);
+      return res.status(404).json({ message: "Product not found" });
     }
+
+    // Delete associated image from Cloudinary if it exists
+    if (product.image_public_id) {
+      console.log(`Deleting product image from Cloudinary: ${product.image_public_id}`);
+      await deleteFromCloudinary(product.image_public_id);
+    } else if (product.image && product.image.includes("http://localhost:5001/uploads/")) {
+      // Legacy cleanup for local files
+      const fileName = product.image.split("/").pop();
+      const filePath = path.join(__dirname, "..", "uploads", fileName);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
+    await Product.findByIdAndDelete(id);
+    console.log(`Product with ID ${id} deleted successfully`);
+    
+    res.json({ message: "Product removed" });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("Error in deleteProduct controller:", error.message);
+    res.status(500).json({ message: "Failed to delete product", error: error.message });
   }
 };
 export const seedProducts = async (req, res) => {
