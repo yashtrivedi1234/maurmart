@@ -80,12 +80,21 @@ export const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
 
-    // Bypass OTP for Admin
-    if (user.role === "admin") {
-      const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-        expiresIn: "7d",
-      });
-      return res.json({ message: "Admin Login Successful", token, needsVerification: false });
+    // Strict Admin Check
+    if (email === process.env.ADMIN_EMAIL) {
+      if (password === process.env.ADMIN_PASSWORD) {
+        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+          expiresIn: "7d",
+        });
+        return res.json({ message: "Admin Login Successful", token, needsVerification: false });
+      } else {
+        return res.status(400).json({ message: "Invalid credentials" });
+      }
+    }
+
+    // Prevent any other users with "admin" role from logging in via regular flow if they don't match ADMIN_EMAIL
+    if (user.role === "admin" && email !== process.env.ADMIN_EMAIL) {
+      return res.status(403).json({ message: "Access denied. Use official admin credentials." });
     }
 
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
