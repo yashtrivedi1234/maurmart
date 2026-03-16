@@ -6,13 +6,15 @@ const router = express.Router();
 
 router.use(authMiddleware);
 
-// User routes
+// Specific routes first
 router.post("/create", createOrder);
 router.get("/user-orders", getUserOrders);
-router.get("/:id", getOrderById);
 
-// Admin routes
+// Admin routes (more specific)
 router.get("/", adminMiddleware, getAllOrders);
 router.patch("/:id/status", adminMiddleware, updateOrderStatus);
+
+// Generic routes last (must come after specific ones)
+router.get("/:id", getOrderById);
 
 export default router;
