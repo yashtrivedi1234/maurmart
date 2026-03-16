@@ -111,7 +111,7 @@ const Checkout = () => {
                   price: item.product.price,
                 })),
                 shippingAddress,
-                paymentMethod: "Online (Razorpay)",
+                paymentMethod: "Online Payment",
                 totalPrice: calculateTotal(),
                 razorpay_payment_id: response.razorpay_payment_id,
               };
