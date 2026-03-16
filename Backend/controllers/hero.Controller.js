@@ -30,21 +30,19 @@ export const getHeroSlides = async (req, res) => {
 export const createHeroSlide = async (req, res) => {
   try {
     const { badge, heading, highlight, sub } = req.body;
-    
-    let imageUrl = req.body.image;
-    let publicId = "";
 
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.path, "hero");
-      if (result) {
-        imageUrl = result.url;
-        publicId = result.public_id;
-      }
+    if (!req.file) {
+      return res.status(400).json({ message: "Hero image upload is required" });
+    }
+
+    const result = await uploadToCloudinary(req.file.path, "hero");
+    if (!result?.url || !result?.public_id) {
+      return res.status(500).json({ message: "Failed to upload hero image to Cloudinary" });
     }
 
     const slide = new HeroSlide({
-      image: imageUrl,
-      image_public_id: publicId,
+      image: result.url,
+      image_public_id: result.public_id,
       badge,
       heading,
       highlight,
@@ -87,18 +85,17 @@ export const updateHeroSlide = async (req, res) => {
 
     if (slide) {
         if (req.file) {
-            // Delete old one
-            if (slide.image_public_id) {
-                await deleteFromCloudinary(slide.image_public_id);
-            }
-            // Upload new one
             const result = await uploadToCloudinary(req.file.path, "hero");
-            if (result) {
-                slide.image = result.url;
-                slide.image_public_id = result.public_id;
+      if (!result?.url || !result?.public_id) {
+        return res.status(500).json({ message: "Failed to upload hero image to Cloudinary" });
             }
-        } else if (req.body.image) {
-            slide.image = req.body.image;
+
+      if (slide.image_public_id) {
+        await deleteFromCloudinary(slide.image_public_id);
+      }
+
+      slide.image = result.url;
+      slide.image_public_id = result.public_id;
         }
 
         slide.badge = req.body.badge || slide.badge;

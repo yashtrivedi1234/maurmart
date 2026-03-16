@@ -180,14 +180,13 @@ export const getUserProfile = async (req, res) => {
 };
 
 export const updateUserProfile = async (req, res) => {
-  const { name, phone, profilePic } = req.body;
+  const { name, phone } = req.body;
   try {
     const user = await User.findById(req.user.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (name) user.name = name;
     if (phone) user.phone = phone;
-    if (profilePic !== undefined) user.profilePic = profilePic;
 
     await user.save();
     const updatedUser = await User.findById(req.user.id).select("-password");

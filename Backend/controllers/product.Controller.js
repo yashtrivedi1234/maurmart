@@ -85,16 +85,14 @@ export const updateProductStatus = async (req, res) => {
 export const createProduct = async (req, res) => {
   try {
     const { name, price, originalPrice, description, category, rating, reviews, stock, isFeatured, isNewArrival, isTrending } = req.body;
-    
-    // Use Cloudinary if a file is uploaded
-    let imageUrl = req.body.image; 
-    let publicId = "";
-    if (req.file) {
-      const result = await uploadToCloudinary(req.file.path, "products");
-      if (result) {
-        imageUrl = result.url;
-        publicId = result.public_id;
-      }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "Product image upload is required" });
+    }
+
+    const result = await uploadToCloudinary(req.file.path, "products");
+    if (!result?.url || !result?.public_id) {
+      return res.status(500).json({ message: "Failed to upload product image to Cloudinary" });
     }
 
     const product = new Product({
@@ -102,8 +100,8 @@ export const createProduct = async (req, res) => {
       price,
       originalPrice,
       description,
-      image: imageUrl,
-      image_public_id: publicId,
+      image: result.url,
+      image_public_id: result.public_id,
       category,
       rating: rating || 0,
       reviews: reviews || 0,
@@ -128,19 +126,18 @@ export const updateProduct = async (req, res) => {
     const product = await Product.findById(req.params.id);
 
     if (product) {
-      // If a new file is uploaded to Cloudinary
       if (req.file) {
-        // Delete old one if it exists
+        const result = await uploadToCloudinary(req.file.path, "products");
+        if (!result?.url || !result?.public_id) {
+          return res.status(500).json({ message: "Failed to upload product image to Cloudinary" });
+        }
+
         if (product.image_public_id) {
           await deleteFromCloudinary(product.image_public_id);
         }
-        const result = await uploadToCloudinary(req.file.path, "products");
-        if (result) {
-          product.image = result.url;
-          product.image_public_id = result.public_id;
-        }
-      } else if (req.body.image) {
-        product.image = req.body.image;
+
+        product.image = result.url;
+        product.image_public_id = result.public_id;
       }
 
       product.name = req.body.name || product.name;

@@ -54,9 +54,21 @@ const AdminProducts = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
+  const resetForm = () => {
+    setCurrentProduct({});
+    setSelectedFile(null);
+    setImagePreview(null);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith("image/")) {
+        toast.error("Please select a valid image file");
+        e.target.value = "";
+        return;
+      }
+
       setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -80,20 +92,21 @@ const AdminProducts = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      if (!selectedFile) {
+        toast.error("Please select a product image");
+        return;
+      }
+
       const formData = new FormData();
       Object.entries(currentProduct).forEach(([key, value]) => {
         formData.append(key, String(value));
       });
-      if (selectedFile) {
-        formData.append("image", selectedFile);
-      }
+      formData.append("image", selectedFile);
 
       await createProduct(formData).unwrap();
       toast.success("Product created successfully");
       setIsAddDialogOpen(false);
-      setCurrentProduct({});
-      setSelectedFile(null);
-      setImagePreview(null);
+      resetForm();
     } catch (err) {
       toast.error("Failed to create product");
     }
@@ -115,9 +128,7 @@ const AdminProducts = () => {
       await updateProduct({ id: currentProduct._id!, formData }).unwrap();
       toast.success("Product updated successfully");
       setIsEditDialogOpen(false);
-      setCurrentProduct({});
-      setSelectedFile(null);
-      setImagePreview(null);
+      resetForm();
     } catch (err) {
       toast.error("Failed to update product");
     }
@@ -125,6 +136,8 @@ const AdminProducts = () => {
 
   const openEditDialog = (product: Product) => {
     setCurrentProduct(product);
+    setSelectedFile(null);
+    setImagePreview(null);
     setIsEditDialogOpen(true);
   };
 
@@ -141,9 +154,14 @@ const AdminProducts = () => {
           <p className="text-muted-foreground mt-1">Manage your store's inventory and details.</p>
         </div>
         
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
+          setIsAddDialogOpen(open);
+          if (!open) {
+            resetForm();
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20">
+            <Button className="rounded-xl gap-2 shadow-lg shadow-primary/20" onClick={resetForm}>
               <Plus className="h-4 w-4" /> Add New Product
             </Button>
           </DialogTrigger>
@@ -186,7 +204,7 @@ const AdminProducts = () => {
                       </div>
                     )}
                     <div className="flex-1">
-                      <Input id="image" type="file" accept="image/*" onChange={handleFileChange} className="rounded-xl" />
+                      <Input id="image" type="file" accept="image/*" required onChange={handleFileChange} className="rounded-xl" />
                       <p className="text-[10px] text-muted-foreground mt-1">Select a high-quality product image.</p>
                     </div>
                   </div>
@@ -299,7 +317,12 @@ const AdminProducts = () => {
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog open={isEditDialogOpen} onOpenChange={(open) => {
+        setIsEditDialogOpen(open);
+        if (!open) {
+          resetForm();
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Product</DialogTitle>
