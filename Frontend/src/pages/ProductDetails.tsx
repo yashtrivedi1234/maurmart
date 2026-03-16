@@ -25,56 +25,23 @@ const HIGHLIGHTS = [
   "24/7 customer support included",
 ];
 
-const SPECS = [
-  { label: "Brand", value: "Maurya Mart" },
-  { label: "Model", value: "Premium Series 2024" },
-  { label: "Country of Origin", value: "India" },
-  { label: "Warranty", value: "12 Months" },
-  { label: "Included in Box", value: "Main Unit, User Manual, Warranty Card" },
-];
-
 const REVIEW_BREAKDOWN = [
-  { stars: 5, count: 1240, pct: 62 },
-  { stars: 4, count: 480, pct: 24 },
-  { stars: 3, count: 140, pct: 7 },
-  { stars: 2, count: 60, pct: 3 },
-  { stars: 1, count: 80, pct: 4 },
+  { stars: 5, count: 145 },
+  { stars: 4, count: 32 },
+  { stars: 3, count: 12 },
+  { stars: 2, count: 5 },
+  { stars: 1, count: 3 },
 ];
 
-const REVIEWS = [
-  {
-    id: 1,
-    name: "Rahul M.",
-    rating: 5,
-    date: "12 Feb 2025",
-    verified: true,
-    title: "Absolutely worth every rupee!",
-    body: "I've been using this for 3 months and couldn't be happier. Build quality is superb, and performance exceeds my expectations.",
-    helpful: 42,
-    notHelpful: 3,
-  },
-  {
-    id: 2,
-    name: "Priya S.",
-    rating: 4,
-    date: "28 Jan 2025",
-    verified: true,
-    title: "Great product, minor quibbles",
-    body: "Really solid product overall. Setup was a breeze and it works exactly as described.",
-    helpful: 18,
-    notHelpful: 1,
-  },
-];
-
-const QA = [
-  {
-    q: "Does it come with a warranty?",
-    a: "Yes, it includes a 12-month manufacturer warranty covering all manufacturing defects.",
-  },
-  {
-    q: "Can I return the product if I don't like it?",
-    a: "Absolutely — we offer hassle-free returns within 30 days of delivery.",
-  },
+const SPECS = [
+  { label: "Brand", value: "Premium Brand" },
+  { label: "Model", value: "Professional Series" },
+  { label: "Color", value: "Available in multiple colors" },
+  { label: "Weight", value: "2.5 kg" },
+  { label: "Dimensions", value: "30 x 20 x 10 cm" },
+  { label: "Warranty", value: "1 Year Manufacturer Warranty" },
+  { label: "Certification", value: "ISO 9001 & CE Certified" },
+  { label: "Material", value: "Premium Stainless Steel" },
 ];
 
 /* ─── Sub-components ─── */
@@ -407,7 +374,7 @@ const ProductDetails = () => {
               <div className="space-y-2">
                 <h3 className="font-semibold text-foreground text-sm uppercase tracking-wide">Sold by</h3>
                 <div className="flex items-center justify-between">
-                  <span className="text-primary text-sm font-medium hover:underline cursor-pointer">Maurya Store Official</span>
+                  <span className="text-primary text-sm font-medium hover:underline cursor-pointer">MaurMart Store Official</span>
                   <Badge variant="secondary" className="text-xs">98% positive</Badge>
                 </div>
                 <div className="flex items-center gap-1.5">

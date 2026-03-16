@@ -1,5 +1,14 @@
 import { Newsletter } from "../models/newsletter.model.js";
 
+export const getNewsletters = async (req, res) => {
+  try {
+    const newsletters = await Newsletter.find().sort({ createdAt: -1 }).lean();
+    res.status(200).json(newsletters);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch newsletters", error: error.message });
+  }
+};
+
 export const subscribeNewsletter = async (req, res) => {
   try {
     const { email } = req.body;

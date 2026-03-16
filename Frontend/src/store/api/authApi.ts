@@ -3,7 +3,18 @@ import { API_BASE_URL } from "@/lib/apiBase";
 
 export const authApi = createApi({
   reducerPath: "authApi",
-  baseQuery: fetchBaseQuery({ baseUrl: `${API_BASE_URL}/api/auth` }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: `${API_BASE_URL}/api/auth`,
+    prepareHeaders: (headers) => {
+      const userToken = localStorage.getItem("token");
+      const adminToken = localStorage.getItem("adminToken");
+      const token = adminToken || userToken;
+      if (token) {
+        headers.set("Authorization", `Bearer ${token}`);
+      }
+      return headers;
+    },
+  }),
   tagTypes: ["User"],
   endpoints: (builder) => ({
     register: builder.mutation({
@@ -19,6 +30,7 @@ export const authApi = createApi({
         method: "POST",
         body: credentials,
       }),
+      invalidatesTags: ["User"],
     }),
     verifyOtp: builder.mutation({
       query: (data) => ({
@@ -26,6 +38,7 @@ export const authApi = createApi({
         method: "POST",
         body: data,
       }),
+      invalidatesTags: ["User"],
     }),
     resendOtp: builder.mutation({
       query: (email) => ({
@@ -35,12 +48,7 @@ export const authApi = createApi({
       }),
     }),
     getProfile: builder.query({
-      query: () => ({
-        url: "/profile",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }),
+      query: () => "/profile",
       providesTags: ["User"],
     }),
     updateProfile: builder.mutation({
@@ -48,9 +56,6 @@ export const authApi = createApi({
         url: "/update-profile",
         method: "PUT",
         body: data,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
       }),
       invalidatesTags: ["User"],
     }),
@@ -59,20 +64,26 @@ export const authApi = createApi({
         url: "/upload-profile-pic",
         method: "POST",
         body: formData,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
       }),
       invalidatesTags: ["User"],
     }),
     getAllUsers: builder.query({
-      query: () => ({
-        url: "/admin/users",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      }),
+      query: () => "/admin/users",
       providesTags: ["User"],
+    }),
+    forgotPassword: builder.mutation({
+      query: (email) => ({
+        url: "/forgot-password",
+        method: "POST",
+        body: { email },
+      }),
+    }),
+    resetPassword: builder.mutation({
+      query: (data) => ({
+        url: "/reset-password",
+        method: "POST",
+        body: data,
+      }),
     }),
   }),
 });
@@ -85,5 +96,7 @@ export const {
   useResendOtpMutation, 
   useUpdateProfileMutation,
   useUploadProfilePicMutation,
-  useGetAllUsersQuery
+  useGetAllUsersQuery,
+  useForgotPasswordMutation,
+  useResetPasswordMutation
 } = authApi;

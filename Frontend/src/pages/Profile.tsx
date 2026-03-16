@@ -20,8 +20,9 @@ interface CartItem {
 }
 
 const Profile = () => {
-  const { data: user, isLoading, error } = useGetProfileQuery({});
-  const { data: cart } = useGetCartQuery({});
+  const token = localStorage.getItem("token");
+  const { data: user, isLoading, error } = useGetProfileQuery({}, { skip: !token });
+  const { data: cart } = useGetCartQuery({}, { skip: !token });
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [uploadProfilePic, { isLoading: isUploadingPic }] = useUploadProfilePicMutation();
   const navigate = useNavigate();
@@ -84,6 +85,11 @@ const Profile = () => {
       toast.error("Failed to upload profile picture");
     }
   };
+
+  if (!token) {
+    navigate("/login");
+    return null;
+  }
 
   if (isLoading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
 

@@ -6,21 +6,12 @@ import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js
 // @access  Public
 export const getHeroSlides = async (req, res) => {
   try {
-    const slides = await HeroSlide.find({});
-    // If empty, return a default slide so the frontend doesn't break
-    if (slides.length === 0) {
-        return res.json([{
-            _id: "default-1",
-            image: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1600&q=80",
-            badge: "🚀 Welcome to Maurya Mart",
-            heading: "Your Daily Essentials,",
-            highlight: "Delivered Fast",
-            sub: "Shop the best quality products at unbeatable prices."
-        }]);
-    }
-    res.json(slides);
+    const slides = await HeroSlide.find({}).lean();
+
+    res.status(200).json(slides);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error(error);
+    res.status(500).json({ message: "Failed to fetch hero slides" });
   }
 };
 
@@ -35,7 +26,7 @@ export const createHeroSlide = async (req, res) => {
       return res.status(400).json({ message: "Hero image upload is required" });
     }
 
-    const result = await uploadToCloudinary(req.file.path, "hero");
+    const result = await uploadToCloudinary(req.file.buffer, "hero");
     if (!result?.url || !result?.public_id) {
       return res.status(500).json({ message: "Failed to upload hero image to Cloudinary" });
     }
@@ -85,7 +76,7 @@ export const updateHeroSlide = async (req, res) => {
 
     if (slide) {
         if (req.file) {
-            const result = await uploadToCloudinary(req.file.path, "hero");
+            const result = await uploadToCloudinary(req.file.buffer, "hero");
       if (!result?.url || !result?.public_id) {
         return res.status(500).json({ message: "Failed to upload hero image to Cloudinary" });
             }

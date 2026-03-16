@@ -1,13 +1,17 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
-import dotenv from "dotenv";
 
-dotenv.config();
+let razorpay;
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+const initializeRazorpay = () => {
+  if (!razorpay) {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  }
+  return razorpay;
+};
 
 export const createRazorpayOrder = async (req, res) => {
   const { amount } = req.body;
@@ -21,7 +25,8 @@ export const createRazorpayOrder = async (req, res) => {
   };
 
   try {
-    const order = await razorpay.orders.create(options);
+    const razorpayInstance = initializeRazorpay();
+    const order = await razorpayInstance.orders.create(options);
     res.status(200).json(order);
   } catch (err) {
     console.error("Razorpay Order Creation Error:", err);

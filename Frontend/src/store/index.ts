@@ -5,6 +5,10 @@ import { productApi } from "./api/productApi";
 import { orderApi } from "./api/orderApi";
 import { paymentApi } from "./api/paymentApi";
 import { heroApi } from "./api/heroApi";
+import { brandApi } from "./api/brandApi";
+import { newsletterApi } from "./api/newsletterApi";
+import { contactApi } from "./api/contactApi";
+import { faqApi } from "./api/faqApi";
 import wishlistReducer from "./slices/wishlistSlice";
 
 export const store = configureStore({
@@ -15,6 +19,10 @@ export const store = configureStore({
     [orderApi.reducerPath]: orderApi.reducer,
     [paymentApi.reducerPath]: paymentApi.reducer,
     [heroApi.reducerPath]: heroApi.reducer,
+    [brandApi.reducerPath]: brandApi.reducer,
+    [newsletterApi.reducerPath]: newsletterApi.reducer,
+    [contactApi.reducerPath]: contactApi.reducer,
+    [faqApi.reducerPath]: faqApi.reducer,
     wishlist: wishlistReducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -24,7 +32,11 @@ export const store = configureStore({
       productApi.middleware, 
       orderApi.middleware,
       paymentApi.middleware,
-      heroApi.middleware
+      heroApi.middleware,
+      brandApi.middleware,
+      newsletterApi.middleware,
+      contactApi.middleware,
+      faqApi.middleware
     ),
 });
 

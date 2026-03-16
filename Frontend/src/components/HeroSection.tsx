@@ -24,14 +24,11 @@ const HeroSection = () => {
     );
   }
 
-  const activeSlides = slides && slides.length > 0 ? slides : [{
-    _id: "default",
-    image: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=1600&q=80",
-    badge: "🛒 Free Delivery on Orders Above ₹499",
-    heading: "Your Daily Essentials,",
-    highlight: "Delivered Fast",
-    sub: "Shop groceries, electronics, and everyday products at the best prices. Quality you can trust."
-  }];
+  const activeSlides = slides && slides.length > 0 ? slides : [];
+
+  if (!activeSlides || activeSlides.length === 0) {
+    return <div>No hero slides available. Create one from the admin panel.</div>;
+  }
 
   const currentSlide = activeSlides[currentSlideIndex] || activeSlides[0];
 

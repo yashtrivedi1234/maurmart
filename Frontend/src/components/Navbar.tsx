@@ -1,20 +1,44 @@
 import { ShoppingCart, Menu, X, Search, User as UserIcon, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useGetProfileQuery } from "@/store/api/authApi";
 import { useGetCartQuery } from "@/store/api/cartApi";
 import { useSelector } from "react-redux";
 import { RootState } from "@/store";
 import SearchOverlay from "./SearchOverlay";
+import Logo from "@/assets/logo.png";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { data: user } = useGetProfileQuery({}, { skip: !localStorage.getItem("token") });
-  const { data: cart } = useGetCartQuery({}, { skip: !localStorage.getItem("token") });
+  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  // Fetch profile/cart once when a token exists; let RTK Query handle cache & re-fetches
+  const { data: user } = useGetProfileQuery(undefined, { skip: !token });
+  const { data: cart } = useGetCartQuery(undefined, { skip: !token });
   const navigate = useNavigate();
+  const location = useLocation();
   const wishlistItems = useSelector((state: RootState) => state.wishlist.items);
+
+  // Listen for login from other tabs and token changes
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "token") {
+        setToken(e.newValue);
+      }
+    };
+
+    const handleTokenChange = () => {
+      setToken(localStorage.getItem("token"));
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    window.addEventListener("tokenChanged", handleTokenChange);
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      window.removeEventListener("tokenChanged", handleTokenChange);
+    };
+  }, []);
 
   const cartCount = cart?.items?.reduce((total: number, item: { quantity: number }) => total + item.quantity, 0) || 0;
 
@@ -31,12 +55,11 @@ const Navbar = () => {
       <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border/40">
         <div className="container mx-auto px-4 flex items-center justify-between h-16">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg hero-gradient flex items-center justify-center shadow-lg shadow-primary/20">
-              <span className="text-white font-bold text-lg">M</span>
-            </div>
-            <span className="font-display font-bold text-xl tracking-tight text-foreground">
-              Maur<span className="text-primary">Mart</span>
-            </span>
+            <img
+              src={Logo}
+              alt="MaurMart logo"
+              className="h-[60px] w-auto object-contain drop-shadow-md"
+            />
           </Link>
 
           <div className="hidden md:flex items-center gap-8">
@@ -85,14 +108,28 @@ const Navbar = () => {
               </Link>
 
               {user ? (
-                <Link to="/profile">
-                  <Button variant="outline" size="sm" className="gap-2 border-primary/20 hover:bg-primary/5 rounded-full pl-1 pr-3">
-                    <div className="w-6 h-6 rounded-full hero-gradient flex items-center justify-center text-[10px] text-white font-bold">
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="max-w-[100px] truncate font-medium">{user.name.split(' ')[0]}</span>
+                <div className="flex items-center gap-2">
+                  <Link to="/profile">
+                    <Button variant="outline" size="sm" className="gap-2 border-primary/20 hover:bg-primary/5 rounded-full pl-1 pr-3">
+                      <div className="w-6 h-6 rounded-full hero-gradient flex items-center justify-center text-[10px] text-white font-bold">
+                        {user.name.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="max-w-[100px] truncate font-medium">{user.name.split(' ')[0]}</span>
+                    </Button>
+                  </Link>
+                  <Button 
+                    size="sm" 
+                    variant="ghost"
+                    className="rounded-full"
+                    onClick={() => {
+                      localStorage.removeItem("token");
+                      setToken(null);
+                      navigate("/");
+                    }}
+                  >
+                    Logout
                   </Button>
-                </Link>
+                </div>
               ) : (
                 <Button size="sm" className="rounded-full shadow-lg shadow-primary/20" onClick={() => navigate("/login")}>
                   Sign In
@@ -133,9 +170,23 @@ const Navbar = () => {
                 <ShoppingCart className="h-4 w-4" /> Cart ({cartCount})
               </Button>
               {user ? (
-                <Button variant="outline" className="w-full rounded-xl" onClick={() => { navigate("/profile"); setMobileOpen(false); }}>
-                  Profile
-                </Button>
+                <>
+                  <Button variant="outline" className="w-full rounded-xl" onClick={() => { navigate("/profile"); setMobileOpen(false); }}>
+                    Profile
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="w-full rounded-xl" 
+                    onClick={() => { 
+                      localStorage.removeItem("token");
+                      setToken(null);
+                      setMobileOpen(false);
+                      navigate("/");
+                    }}
+                  >
+                    Logout
+                  </Button>
+                </>
               ) : (
                 <Button variant="outline" className="w-full rounded-xl" onClick={() => { navigate("/login"); setMobileOpen(false); }}>
                   Sign In

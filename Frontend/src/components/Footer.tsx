@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import Logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
@@ -9,10 +10,11 @@ const Footer = () => {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 rounded-lg hero-gradient flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">M</span>
-              </div>
-              <span className="font-display font-bold text-lg">MaurMart</span>
+              <img
+                src={Logo}
+                alt="MaurMart logo"
+                className="h-[60px] w-auto object-contain"
+              />
             </div>
             <p className="text-primary-foreground/60 text-sm leading-relaxed">
               Your one-stop shop for daily essentials and electronics. Quality products at the best prices.
@@ -61,22 +63,40 @@ const Footer = () => {
                 </a>
               ))}
             </div>
-            <Link
-              to="/admin"
+            <a
+              href="/admin"
+              target="_blank"
+              rel="noopener noreferrer"
               className="inline-block text-xs px-4 py-2 rounded-full border border-primary-foreground/20 text-primary-foreground/60 hover:bg-primary-foreground/10 transition-colors"
             >
               Admin Panel →
-            </Link>
+            </a>
           </div>
         </div>
 
         <div className="mt-12 pt-6 border-t border-primary-foreground/10 text-center">
           <p className="text-primary-foreground/40 text-sm">
-            © {new Date().getFullYear()} Maur Mart. All rights reserved.
+            © {new Date().getFullYear()} MaurMart. All rights reserved.
           </p>
           <p className="text-primary-foreground/50 text-sm mt-2 font-medium">
             Digital Experience by{" "}
-            <span className="text-primary font-semibold">Yash & Shalu</span>
+            <a
+              href="https://www.linkedin.com/in/yash-trivedi-contact/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary font-semibold hover:underline"
+            >
+              Yash
+            </a>
+            {" & "}
+            <a
+              href="https://www.linkedin.com/in/shalu-kumari-contact/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary font-semibold hover:underline"
+            >
+              Shalu
+            </a>
           </p>
         </div>
       </div>

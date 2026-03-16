@@ -6,7 +6,9 @@ export const heroApi = createApi({
   baseQuery: fetchBaseQuery({ 
     baseUrl: `${API_BASE_URL}/api/heroes`,
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem("token");
+      const userToken = localStorage.getItem("token");
+      const adminToken = localStorage.getItem("adminToken");
+      const token = adminToken || userToken;
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
       }

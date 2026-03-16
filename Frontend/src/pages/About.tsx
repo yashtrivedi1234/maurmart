@@ -10,12 +10,12 @@ const values = [
 ];
 
 const team = [
-  { name: "Vikas Maurya", role: "Co-Founder & Tech Lead", desc: "Driving the digital vision behind Maurya Mart with cutting-edge technology." },
+  { name: "Vikas Maurya", role: "Co-Founder & Tech Lead", desc: "Driving the digital vision behind MaurMart with cutting-edge technology." },
   { name: "Anshu Maurya", role: "Co-Founder & Creative Head", desc: "Crafting the brand experience and ensuring every detail delights our customers." },
 ];
 
 const milestones = [
-  { year: "2024", title: "The Idea", desc: "Maurya Mart was born from a simple idea — make quality products accessible to everyone in India." },
+  { year: "2024", title: "The Idea", desc: "MaurMart was born from a simple idea — make quality products accessible to everyone in India." },
   { year: "2024", title: "First 1,000 Orders", desc: "Within months of launch, we crossed our first major milestone with overwhelming customer love." },
   { year: "2025", title: "10K+ Products", desc: "Expanded our catalog to over 10,000 products across daily essentials, electronics, and more." },
   { year: "2025", title: "Pan-India Delivery", desc: "Launched nationwide shipping, reaching customers in every corner of the country." },
@@ -37,7 +37,7 @@ const About = () => {
             </span>
           </div>
           <h1 className="text-4xl md:text-5xl font-display font-bold text-primary-foreground mb-4">
-            About Maurya Mart
+            About MaurMart
           </h1>
           <p className="text-primary-foreground/80 max-w-2xl mx-auto text-lg leading-relaxed">
             We're on a mission to make everyday shopping simple, affordable, and delightful for millions of Indians.
@@ -51,7 +51,7 @@ const About = () => {
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-6">Our Story</h2>
             <p className="text-muted-foreground leading-relaxed mb-4">
-              Maurya Mart started with a vision to bridge the gap between quality and affordability. We noticed that
+              MaurMart started with a vision to bridge the gap between quality and affordability. We noticed that
               people in India often had to choose between paying premium prices at branded stores or settling for
               questionable quality at local shops.
             </p>
@@ -61,7 +61,7 @@ const About = () => {
               and personal care to electronics and home utilities, we curate every product with care.
             </p>
             <p className="text-muted-foreground leading-relaxed">
-              Today, Maurya Mart serves thousands of happy customers across India, and we're just getting started.
+              Today, MaurMart serves thousands of happy customers across India, and we're just getting started.
               Our promise remains the same: genuine products, best prices, and a shopping experience you'll love.
             </p>
           </div>
@@ -125,7 +125,7 @@ const About = () => {
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">Our Journey</h2>
-            <p className="text-muted-foreground max-w-lg mx-auto">Key milestones that shaped Maurya Mart</p>
+            <p className="text-muted-foreground max-w-lg mx-auto">Key milestones that shaped MaurMart</p>
           </div>
           <div className="max-w-2xl mx-auto space-y-0">
             {milestones.map((m, i) => (

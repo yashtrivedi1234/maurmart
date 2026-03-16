@@ -19,6 +19,10 @@ import heroRoutes from "./routes/hero.Routes.js";
 import cartRoutes from "./routes/cart.Routes.js";
 import orderRoutes from "./routes/order.Routes.js";
 import paymentRoutes from "./routes/payment.Routes.js";
+import brandRoutes from "./routes/brand.Routes.js";
+import contactRoutes from "./routes/contact.Routes.js";
+import faqRoutes from "./routes/faq.Routes.js";
+import adminRoutes from "./routes/admin.Routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -68,12 +72,16 @@ mongoose
   .catch((err) => console.log("MongoDB Error ❌", err.message));
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/newsletter", newsletterRoutes);
 app.use("/api/heroes", heroRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/brands", brandRoutes);
+app.use("/api/contacts", contactRoutes);
+app.use("/api/faqs", faqRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

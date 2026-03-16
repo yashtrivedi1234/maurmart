@@ -5,35 +5,42 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { useSubmitContactMutation } from "@/store/api/contactApi";
 
 const contactInfo = [
   { icon: Mail, label: "Email", value: "info@maurmart.com", href: "mailto:info@maurmart.com" },
   { icon: Phone, label: "Phone", value: "+91 98765 43210", href: "tel:+919876543210" },
-  { icon: MapPin, label: "Address", value: "Maurya Mart HQ, India", href: null },
+  { icon: MapPin, label: "Address", value: "MaurMart HQ, India", href: null },
   { icon: Clock, label: "Working Hours", value: "Mon–Sat, 9 AM – 8 PM IST", href: null },
 ];
 
 const Contact = () => {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
+  const [submitContact, { isLoading }] = useSubmitContactMutation();
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
-    setLoading(true);
-    setTimeout(() => {
+    
+    try {
+      await submitContact(form).unwrap();
       toast({ title: "Message sent!", description: "We'll get back to you within 24 hours." });
       setForm({ name: "", email: "", subject: "", message: "" });
-      setLoading(false);
-    }, 1000);
+    } catch (error: any) {
+      toast({ 
+        title: "Failed to send message", 
+        description: error?.data?.message || error?.message,
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -102,8 +109,8 @@ const Contact = () => {
                   <Label htmlFor="message">Message *</Label>
                   <Textarea id="message" name="message" placeholder="Tell us more…" rows={5} value={form.message} onChange={handleChange} maxLength={1000} />
                 </div>
-                <Button type="submit" className="w-full rounded-full" disabled={loading}>
-                  {loading ? "Sending…" : <><Send className="h-4 w-4 mr-1" /> Send Message</>}
+                <Button type="submit" className="w-full rounded-full" disabled={isLoading}>
+                  {isLoading ? "Sending…" : <><Send className="h-4 w-4 mr-1" /> Send Message</>}
                 </Button>
               </form>
             </div>
@@ -112,7 +119,7 @@ const Contact = () => {
             <div className="flex flex-col justify-center">
               <div className="bg-card rounded-2xl border border-border card-shadow overflow-hidden">
                 <iframe
-                  title="Maurya Mart Location"
+                  title="MaurMart Location"
                   src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3587145.256779!2d78.96288!3d20.593684!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x30635ff06b92b791%3A0xd78c4fa1854213a6!2sIndia!5e0!3m2!1sen!2sin!4v1700000000000"
                   className="w-full h-64 md:h-80"
                   loading="lazy"

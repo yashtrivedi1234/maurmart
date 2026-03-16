@@ -5,16 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import Logo from "@/assets/logo.png";
 
-import { useLoginMutation, useRegisterMutation, useVerifyOtpMutation, useResendOtpMutation } from "@/store/api/authApi";
+import { useLoginMutation, useRegisterMutation, useVerifyOtpMutation, useResendOtpMutation, useForgotPasswordMutation, useResetPasswordMutation } from "@/store/api/authApi";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,6 +27,8 @@ const Login = () => {
   const [register, { isLoading: isRegisterLoading }] = useRegisterMutation();
   const [verifyOtp, { isLoading: isVerifyLoading }] = useVerifyOtpMutation();
   const [resendOtp, { isLoading: isResendLoading }] = useResendOtpMutation();
+  const [forgotPassword, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
+  const [resetPassword, { isLoading: isResetLoading }] = useResetPasswordMutation();
 
   const handleResendOtp = async () => {
     try {
@@ -41,23 +47,67 @@ const Login = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) {
+      toast({ title: "Please enter your email", variant: "destructive" });
+      return;
+    }
+    try {
+      await forgotPassword(email).unwrap();
+      toast({ title: "Code sent!", description: "Check your email for the reset code." });
+      setIsResettingPassword(true);
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      toast({
+        title: "Error",
+        description: error.data?.message || "Failed to send reset code.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!password || !confirmPassword) {
+      toast({ title: "Please fill all fields", variant: "destructive" });
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast({ title: "Passwords don't match", variant: "destructive" });
+      return;
+    }
+    try {
+      await resetPassword({ email, code: otp, newPassword: password }).unwrap();
+      toast({ title: "Password reset successful!", description: "You can now log in with your new password." });
+      setIsForgotPassword(false);
+      setIsResettingPassword(false);
+      setOtp("");
+      setEmail("");
+      setPassword("");
+      setConfirmPassword("");
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      toast({
+        title: "Error",
+        description: error.data?.message || "Failed to reset password.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       if (isVerifying) {
         const result = await verifyOtp({ email, otp }).unwrap();
         localStorage.setItem("token", result.token);
+        window.dispatchEvent(new Event("tokenChanged"));
         toast({
           title: "Login Successful",
-          description: "Welcome back to Maurya Mart!",
+          description: "Welcome back to MaurMart!",
         });
-        
-        // Redirect to admin dashboard if the logged in user is admin
-        if (email === "admin@gmail.com") {
-          navigate("/admin");
-        } else {
-          navigate("/");
-        }
+        navigate("/");
       } else if (isSignUp) {
         const result = await register({ name, email, password }).unwrap();
         toast({
@@ -75,6 +125,7 @@ const Login = () => {
           setIsVerifying(true);
         } else {
           localStorage.setItem("token", result.token);
+          window.dispatchEvent(new Event("tokenChanged"));
           toast({
             title: "Welcome Back!",
             description: result.message || "You have signed in successfully.",
@@ -98,12 +149,11 @@ const Login = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,hsl(160_50%_40%/0.3),transparent_60%)]" />
         <div className="relative z-10 max-w-md">
           <a href="/" className="flex items-center gap-2 mb-10">
-            <div className="w-10 h-10 rounded-lg bg-primary-foreground/15 flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-xl">M</span>
-            </div>
-            <span className="font-display font-bold text-2xl text-primary-foreground">
-              Maur<span className="opacity-80">Mart</span>
-            </span>
+            <img
+              src={Logo}
+              alt="MaurMart logo"
+              className="h-[60px] w-auto object-contain drop-shadow-md"
+            />
           </a>
           <h1 className="text-4xl font-display font-bold text-primary-foreground leading-tight mb-4">
             Your Daily Essentials, Delivered Fast
@@ -132,18 +182,21 @@ const Login = () => {
 
           <div className="mb-8">
             <div className="lg:hidden flex items-center gap-2 mb-6">
-              <div className="w-9 h-9 rounded-lg hero-gradient flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">M</span>
-              </div>
-              <span className="font-display font-bold text-xl text-foreground">
-                Maur<span className="text-primary">Mart</span>
-              </span>
+              <img
+                src={Logo}
+                alt="MaurMart logo"
+                className="h-[60px] w-auto object-contain"
+              />
             </div>
             <h2 className="text-2xl font-display font-bold text-foreground">
-              {isVerifying ? "Verify your email" : isSignUp ? "Create your account" : "Welcome back"}
+              {isForgotPassword ? (isResettingPassword ? "Reset your password" : "Forgot password?") : isVerifying ? "Verify your email" : isSignUp ? "Create your account" : "Welcome back"}
             </h2>
             <p className="text-muted-foreground mt-1">
-              {isVerifying
+              {isForgotPassword
+                ? isResettingPassword
+                  ? "Enter the code sent to your email and set a new password"
+                  : `Enter your email to receive a password reset code`
+                : isVerifying
                 ? `Enter the 4-digit code sent to ${email}`
                 : isSignUp
                 ? "Sign up to start shopping"
@@ -151,8 +204,73 @@ const Login = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {isVerifying ? (
+          <form onSubmit={isForgotPassword ? (isResettingPassword ? handleResetPassword : handleForgotPassword) : handleSubmit} className="space-y-4">
+            {isForgotPassword ? (
+              isResettingPassword ? (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="reset-code">Verification Code</Label>
+                    <Input
+                      id="reset-code"
+                      placeholder="1234"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      required
+                      maxLength={4}
+                      className="h-11 text-center text-2xl tracking-[1em]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="new-password">New Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="new-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="h-11 pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <Input
+                      id="confirm-password"
+                      type="password"
+                      placeholder="••••••••"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      required
+                      minLength={6}
+                      className="h-11"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2">
+                  <Label htmlFor="forget-email">Email Address</Label>
+                  <Input
+                    id="forget-email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+              )
+            ) : isVerifying ? (
               <div className="space-y-2">
                 <Label htmlFor="otp">Verification Code</Label>
                 <Input
@@ -227,16 +345,28 @@ const Login = () => {
               </>
             )}
 
-            {!isSignUp && !isVerifying && (
+            {!isSignUp && !isVerifying && !isForgotPassword && (
               <div className="flex justify-end">
-                <button type="button" className="text-sm text-primary hover:underline">
+                <button 
+                  type="button" 
+                  onClick={() => setIsForgotPassword(true)}
+                  className="text-sm text-primary hover:underline"
+                >
                   Forgot password?
                 </button>
               </div>
             )}
 
-            <Button type="submit" className="w-full h-11 rounded-lg text-base" disabled={isLoginLoading || isRegisterLoading || isVerifyLoading}>
-              {isLoginLoading || isRegisterLoading || isVerifyLoading
+            <Button 
+              type="submit" 
+              className="w-full h-11 rounded-lg text-base" 
+              disabled={isForgotPassword ? isResetLoading || isForgotLoading : isLoginLoading || isRegisterLoading || isVerifyLoading}
+            >
+              {isForgotPassword
+                ? isResettingPassword
+                  ? isResetLoading ? "Resetting..." : "Reset Password"
+                  : isForgotLoading ? "Sending..." : "Send Code"
+                : isLoginLoading || isRegisterLoading || isVerifyLoading
                 ? "Please wait..."
                 : isVerifying
                 ? "Verify OTP"
@@ -247,7 +377,21 @@ const Login = () => {
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
-            {isVerifying ? (
+            {isForgotPassword ? (
+              <button
+                onClick={() => {
+                  setIsForgotPassword(false);
+                  setIsResettingPassword(false);
+                  setOtp("");
+                  setEmail("");
+                  setPassword("");
+                  setConfirmPassword("");
+                }}
+                className="text-primary font-medium hover:underline"
+              >
+                Back to sign in
+              </button>
+            ) : isVerifying ? (
               <button
                 onClick={() => setIsVerifying(false)}
                 className="text-primary font-medium hover:underline"

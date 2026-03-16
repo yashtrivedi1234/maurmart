@@ -43,7 +43,7 @@ const AdminHero = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentSlide, setCurrentSlide] = useState<Partial<HeroSlide>>({
-    badge: "🛒 Free Delivery on Orders Above ₹499",
+    badge: "",
     heading: "",
     highlight: "",
     sub: ""
@@ -71,7 +71,7 @@ const AdminHero = () => {
 
   const resetForm = () => {
     setCurrentSlide({
-      badge: "🛒 Free Delivery on Orders Above ₹499",
+      badge: "",
       heading: "",
       highlight: "",
       sub: ""

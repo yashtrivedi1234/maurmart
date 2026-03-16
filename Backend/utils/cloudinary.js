@@ -1,31 +1,33 @@
 import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
+import { Readable } from "stream";
 
 // Configuration will be handled via .env
-export const uploadToCloudinary = async (localFilePath, folder = "maurya-mart") => {
+export const uploadToCloudinary = async (fileBuffer, folder = "maurya-mart") => {
   try {
-    if (!localFilePath) return null;
+    if (!fileBuffer) return null;
 
-    // Upload the file to Cloudinary
-    const response = await cloudinary.uploader.upload(localFilePath, {
-      folder: folder,
-      resource_type: "auto",
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: folder,
+          resource_type: "auto",
+        },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary Upload Error:", error);
+            reject(error);
+          } else {
+            resolve({
+              url: result.secure_url,
+              public_id: result.public_id,
+            });
+          }
+        }
+      );
+
+      Readable.from(fileBuffer).pipe(stream);
     });
-
-    // Remove the locally saved temporary file
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
-    }
-
-    return {
-      url: response.secure_url,
-      public_id: response.public_id,
-    };
   } catch (error) {
-    // Remove the locally saved temporary file even if upload fails
-    if (fs.existsSync(localFilePath)) {
-      fs.unlinkSync(localFilePath);
-    }
     console.error("Cloudinary Upload Error:", error);
     return null;
   }

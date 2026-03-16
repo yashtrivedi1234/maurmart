@@ -8,7 +8,7 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/shop/ProductCard";
 import FilterSidebar from "@/components/shop/FilterSidebar";
-import { useGetProductsQuery, useSeedProductsMutation, Product } from "@/store/api/productApi";
+import { useGetProductsQuery, Product } from "@/store/api/productApi";
 
 const ITEMS_PER_PAGE = 8;
 
@@ -38,8 +38,7 @@ const Shop = () => {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [showInStockOnly, setShowInStockOnly] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const { data: productsData, isLoading, refetch } = useGetProductsQuery({});
-  const [seedProducts, { isLoading: isSeeding }] = useSeedProductsMutation();
+  const { data: productsData, isLoading } = useGetProductsQuery({});
 
   // Dynamically get unique categories
   const categories = useMemo<string[]>(() => {
@@ -249,15 +248,9 @@ const Shop = () => {
                 <p className="text-muted-foreground text-sm mb-4">
                   {productsData?.length === 0 ? "No products in database." : "Try adjusting your search or filters."}
                 </p>
-                {productsData?.length === 0 ? (
-                  <Button onClick={async () => { await seedProducts({}).unwrap(); refetch(); }} disabled={isSeeding}>
-                    {isSeeding ? "Seeding..." : "Seed Initial Products"}
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={resetFilters}>
-                    Reset Filters
-                  </Button>
-                )}
+                <Button variant="outline" onClick={resetFilters}>
+                  Reset Filters
+                </Button>
               </div>
             )}
 

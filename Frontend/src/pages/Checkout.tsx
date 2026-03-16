@@ -72,7 +72,7 @@ const Checkout = () => {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID || "rzp_live_SPWxzAB35uUahp",
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
-        name: "Maurya Mart",
+        name: "MaurMart",
         description: "Test Transaction",
         order_id: razorpayOrder.id,
         handler: async (response: {
@@ -302,7 +302,7 @@ const Checkout = () => {
 
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
                 <Wallet className="w-3 h-3" />
-                Secure Payment Powered by MauryaMart
+                Secure Payment Powered by MaurMart
               </div>
             </div>
           </div>

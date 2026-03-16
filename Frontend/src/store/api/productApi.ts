@@ -24,7 +24,9 @@ export const productApi = createApi({
   baseQuery: fetchBaseQuery({ 
     baseUrl: `${API_BASE_URL}/api/products`,
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem("token");
+      const userToken = localStorage.getItem("token");
+      const adminToken = localStorage.getItem("adminToken");
+      const token = adminToken || userToken;
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
       }
@@ -64,20 +66,12 @@ export const productApi = createApi({
       }),
       invalidatesTags: ["Product"],
     }),
-    seedProducts: builder.mutation({
-      query: () => ({
-        url: "/seed",
-        method: "POST",
-      }),
-      invalidatesTags: ["Product"],
-    }),
   }),
 });
 
 export const { 
   useGetProductsQuery, 
   useGetProductByIdQuery,
-  useSeedProductsMutation,
   useCreateProductMutation,
   useUpdateProductMutation,
   useDeleteProductMutation

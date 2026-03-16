@@ -1,55 +1,73 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { 
   Package, 
   ShoppingBag, 
   Users, 
   TrendingUp, 
-  ArrowUpRight, 
-  ArrowDownRight,
-  Clock,
-  CheckCircle2
+  Loader2
 } from "lucide-react";
 import { useGetProductsQuery } from "@/store/api/productApi";
-import { useGetCartQuery } from "@/store/api/cartApi";
+import { useGetAllUsersQuery } from "@/store/api/authApi";
+import { useGetAllOrdersQuery } from "@/store/api/orderApi";
 
 const AdminDashboard = () => {
-  // In a real app, we would have an adminStats hook
-  const { data: products } = useGetProductsQuery({});
-  
+  const { data: products = [] } = useGetProductsQuery({});
+  const { data: users = [] } = useGetAllUsersQuery({});
+  const { data: orders = [], isLoading: ordersLoading } = useGetAllOrdersQuery({});
+
+  // Calculate total revenue and order count
+  const { totalRevenue, totalOrders } = useMemo(() => {
+    const total = orders.reduce((sum: number, order: any) => sum + (order.totalAmount || 0), 0);
+    return { totalRevenue: total, totalOrders: orders.length };
+  }, [orders]);
+
   const stats = [
     { 
       name: "Total Products", 
       value: products?.length || 0, 
       icon: Package, 
-      change: "+4.5%", 
-      trend: "up",
       color: "bg-blue-500"
     },
     { 
       name: "Total Orders", 
-      value: "128", 
+      value: totalOrders, 
       icon: ShoppingBag, 
-      change: "+12.2%", 
-      trend: "up",
       color: "bg-primary"
     },
     { 
       name: "Total Users", 
-      value: "1,204", 
+      value: users?.length || 0, 
       icon: Users, 
-      change: "+8.1%", 
-      trend: "up",
       color: "bg-purple-500"
     },
     { 
-      name: "Revenue", 
-      value: "₹45,230", 
+      name: "Total Revenue", 
+      value: `₹${totalRevenue.toLocaleString('en-IN')}`, 
       icon: TrendingUp, 
-      change: "-2.4%", 
-      trend: "down",
       color: "bg-orange-500"
     },
   ];
+
+  const recentOrders = orders.slice(0, 5);
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case "delivered":
+        return "bg-green-100 text-green-700";
+      case "processing":
+        return "bg-blue-100 text-blue-700";
+      case "cancelled":
+        return "bg-red-100 text-red-700";
+      case "shipped":
+        return "bg-orange-100 text-orange-700";
+      default:
+        return "bg-gray-100 text-gray-700";
+    }
+  };
+
+  const formatCurrency = (amount: number) => {
+    return `₹${amount?.toLocaleString('en-IN') || 0}`;
+  };
 
   return (
     <>
@@ -62,12 +80,8 @@ const AdminDashboard = () => {
         {stats.map((stat) => (
           <div key={stat.name} className="bg-white rounded-2xl p-6 border shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between mb-4">
-              <div className={`p-3 rounded-xl ${stat.color} text-white shadow-lg shadow-${stat.color.split('-')[1]}/20`}>
+              <div className={`p-3 rounded-xl ${stat.color} text-white shadow-lg`}>
                 <stat.icon className="h-6 w-6" />
-              </div>
-              <div className={`flex items-center gap-1 text-sm font-bold ${stat.trend === 'up' ? 'text-green-500' : 'text-red-500'}`}>
-                {stat.change}
-                {stat.trend === 'up' ? <ArrowUpRight className="h-4 w-4" /> : <ArrowDownRight className="h-4 w-4" />}
               </div>
             </div>
             <h3 className="text-muted-foreground text-sm font-medium">{stat.name}</h3>
@@ -83,71 +97,72 @@ const AdminDashboard = () => {
             <button className="text-primary text-sm font-bold hover:underline">View All</button>
           </div>
           
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="text-left bg-muted/50 rounded-lg">
-                <tr>
-                  <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Order ID</th>
-                  <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer</th>
-                  <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Amount</th>
-                  <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <tr key={i} className="group hover:bg-muted/30 transition-colors">
-                    <td className="p-3 font-semibold text-sm">#ORD-{1000 + i}</td>
-                    <td className="p-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold uppercase">
-                          C
-                        </div>
-                        <span className="text-sm font-medium">Customer {i}</span>
-                      </div>
-                    </td>
-                    <td className="p-3 font-bold text-sm">₹{1200 + i * 100}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        i % 2 === 0 ? "bg-green-100 text-green-700" : "bg-orange-100 text-orange-700"
-                      }`}>
-                        {i % 2 === 0 ? "Delivered" : "Processing"}
-                      </span>
-                    </td>
+          {ordersLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="animate-spin" />
+            </div>
+          ) : recentOrders.length === 0 ? (
+            <p className="text-center text-muted-foreground py-8">No orders yet</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="text-left bg-muted/50 rounded-lg">
+                  <tr>
+                    <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Order ID</th>
+                    <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Customer</th>
+                    <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Amount</th>
+                    <th className="p-3 text-xs font-bold uppercase tracking-wider text-muted-foreground">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y">
+                  {recentOrders.map((order: any) => (
+                    <tr key={order._id} className="group hover:bg-muted/30 transition-colors">
+                      <td className="p-3 font-semibold text-sm">{`#${order._id?.slice(-6).toUpperCase() || 'N/A'}`}</td>
+                      <td className="p-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold uppercase">
+                            {order.user?.name?.[0] || 'C'}
+                          </div>
+                          <div>
+                            <span className="text-sm font-medium block">{order.user?.name || 'Guest'}</span>
+                            <span className="text-xs text-muted-foreground">{order.user?.email || 'N/A'}</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="p-3 font-bold text-sm">{formatCurrency(order.totalAmount)}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${getStatusColor(order.orderStatus)}`}>
+                          {order.orderStatus || 'Pending'}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-2xl p-6 border shadow-sm">
-          <h3 className="font-display font-bold text-lg mb-6">Recent Activities</h3>
-          <div className="space-y-6">
-            {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex gap-4">
-                <div className={`mt-1 h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  i === 1 ? "bg-blue-100 text-blue-600" : 
-                  i === 2 ? "bg-green-100 text-green-600" : 
-                  "bg-orange-100 text-orange-600"
-                }`}>
-                  {i === 1 ? <Package className="h-4 w-4" /> : 
-                   i === 2 ? <CheckCircle2 className="h-4 w-4" /> : 
-                   <Clock className="h-4 w-4" />}
-                </div>
-                <div>
-                  <p className="text-sm font-semibold">
-                    {i === 1 ? "New product added: Organic Rice" : 
-                     i === 2 ? "Order #1204 marked as delivered" : 
-                     "Customer update on Order #1200"}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{i * 10} minutes ago</p>
-                </div>
-              </div>
-            ))}
+          <h3 className="font-display font-bold text-lg mb-6">Quick Stats</h3>
+          <div className="space-y-4">
+            <div className="border-l-4 border-blue-500 pl-4">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wide">Pending Orders</p>
+              <p className="text-2xl font-bold mt-1">{orders.filter((o: any) => o.orderStatus === 'processing').length}</p>
+            </div>
+            <div className="border-l-4 border-green-500 pl-4">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wide">Delivered Orders</p>
+              <p className="text-2xl font-bold mt-1">{orders.filter((o: any) => o.orderStatus === 'delivered').length}</p>
+            </div>
+            <div className="border-l-4 border-orange-500 pl-4">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wide">Shipped Orders</p>
+              <p className="text-2xl font-bold mt-1">{orders.filter((o: any) => o.orderStatus === 'shipped').length}</p>
+            </div>
+            <div className="border-l-4 border-red-500 pl-4">
+              <p className="text-xs text-muted-foreground uppercase font-bold tracking-wide">Cancelled Orders</p>
+              <p className="text-2xl font-bold mt-1">{orders.filter((o: any) => o.orderStatus === 'cancelled').length}</p>
+            </div>
           </div>
-          <button className="w-full mt-8 py-3 rounded-xl border-2 border-dashed border-muted text-muted-foreground font-bold hover:bg-muted/30 transition-all text-sm">
-            View Activity Log
-          </button>
         </div>
       </div>
     </>

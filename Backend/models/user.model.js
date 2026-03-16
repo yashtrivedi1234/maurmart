@@ -19,6 +19,8 @@ const userSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: false },
     otp: { type: String },
     otpExpires: { type: Date },
+    resetCode: { type: String, default: null },
+    resetCodeExpiry: { type: Date, default: null },
     profilePic: { type: String, default: "" },
     profilePic_public_id: { type: String, default: "" },
     phone: { type: String, default: "" },

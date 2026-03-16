@@ -1,15 +1,23 @@
-const brands = [
-  { name: "Samsung", emoji: "📱" },
-  { name: "Sony", emoji: "🎮" },
-  { name: "Philips", emoji: "💡" },
-  { name: "Nestle", emoji: "🍫" },
-  { name: "Nike", emoji: "👟" },
-  { name: "Boat", emoji: "🎧" },
-  { name: "Himalaya", emoji: "🌿" },
-  { name: "Prestige", emoji: "🍳" },
-];
+import { useGetBrandsQuery } from "@/store/api/brandApi";
+import { Loader2 } from "lucide-react";
 
 const BrandsSection = () => {
+  const { data: brands = [], isLoading } = useGetBrandsQuery({});
+
+  if (isLoading) {
+    return (
+      <section className="py-14 border-y border-border">
+        <div className="container mx-auto px-4 flex justify-center">
+          <Loader2 className="animate-spin" />
+        </div>
+      </section>
+    );
+  }
+
+  if (brands.length === 0) {
+    return null;
+  }
+
   return (
     <section className="py-14 border-y border-border">
       <div className="container mx-auto px-4">
@@ -17,13 +25,16 @@ const BrandsSection = () => {
           Trusted Brands We Partner With
         </p>
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14">
-          {brands.map((brand) => (
+          {brands.map((brand: any) => (
             <div
-              key={brand.name}
-              className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100 transition-opacity duration-300 cursor-default"
+              key={brand._id}
+              className="flex flex-col items-center gap-2 opacity-60 hover:opacity-100 transition-opacity duration-300"
             >
-              <span className="text-3xl">{brand.emoji}</span>
-              <span className="text-xs font-medium text-muted-foreground">{brand.name}</span>
+              <img
+                src={brand.image}
+                alt="Brand"
+                className="h-12 w-auto"
+              />
             </div>
           ))}
         </div>

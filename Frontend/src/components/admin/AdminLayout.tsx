@@ -9,7 +9,11 @@ import {
   LogOut, 
   ArrowLeft,
   Menu,
-  X
+  X,
+  Image,
+  Mail,
+  MessageSquare,
+  HelpCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -24,12 +28,17 @@ const AdminLayout = () => {
     { name: "Products", path: "/admin/products", icon: Package },
     { name: "Orders", path: "/admin/orders", icon: ShoppingBag },
     { name: "Hero Section", path: "/admin/hero", icon: Settings },
+    { name: "Brands", path: "/admin/brands", icon: Image },
+    { name: "Newsletter", path: "/admin/newsletter", icon: Mail },
+    { name: "Messages", path: "/admin/contacts", icon: MessageSquare },
+    { name: "FAQs", path: "/admin/faqs", icon: HelpCircle },
     { name: "Users", path: "/admin/users", icon: Users },
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    navigate("/login");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("isAdmin");
+    navigate("/admin-login");
   };
 
   return (
@@ -41,7 +50,7 @@ const AdminLayout = () => {
             M
           </div>
           <div>
-            <h1 className="font-display font-bold text-foreground">Maurya Mart</h1>
+            <h1 className="font-display font-bold text-foreground">MaurMart</h1>
             <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Admin Panel</p>
           </div>
         </div>
@@ -106,7 +115,7 @@ const AdminLayout = () => {
               M
             </div>
             <div>
-              <h1 className="font-display font-bold text-foreground">Maurya Mart</h1>
+              <h1 className="font-display font-bold text-foreground">MaurMart</h1>
               <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Admin Panel</p>
             </div>
           </div>
@@ -166,7 +175,7 @@ const AdminLayout = () => {
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20 text-sm">
               M
             </div>
-            <p className="font-display font-bold text-xs">Maurya Mart Admin</p>
+            <p className="font-display font-bold text-xs">MaurMart Admin</p>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
             <Menu className="h-6 w-6" />

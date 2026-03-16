@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ScrollToTop } from "./components/ScrollToTop";
 import Layout from "./components/Layout";
 import Index from "./pages/Index";
 import Shop from "./pages/Shop";
@@ -15,12 +16,18 @@ import Categories from "./pages/Categories";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import FAQ from "./pages/FAQ";
+import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminHero from "./pages/admin/AdminHero";
+import AdminBrands from "./pages/admin/AdminBrands";
+import AdminNewsletter from "./pages/admin/AdminNewsletter";
+import AdminContact from "./pages/admin/AdminContact";
+import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminLayout from "./components/admin/AdminLayout";
+import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import ProductDetails from "./pages/ProductDetails";
 import NotFound from "./pages/NotFound";
 
@@ -32,6 +39,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ScrollToTop />
         <Routes>
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
@@ -48,13 +56,20 @@ const App = () => (
             <Route path="/faq" element={<FAQ />} />
           </Route>
 
-          {/* Admin Routes - Separate from main layout (no Navbar/Footer) */}
-          <Route element={<AdminLayout />}>
+          {/* Admin Login Route */}
+          <Route path="/admin-login" element={<AdminLogin />} />
+
+          {/* Protected Admin Routes - Requires Authentication */}
+          <Route element={<ProtectedAdminRoute><AdminLayout /></ProtectedAdminRoute>}>
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/hero" element={<AdminHero />} />
+            <Route path="/admin/brands" element={<AdminBrands />} />
+            <Route path="/admin/newsletter" element={<AdminNewsletter />} />
+            <Route path="/admin/contacts" element={<AdminContact />} />
+            <Route path="/admin/faqs" element={<AdminFAQ />} />
           </Route>
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

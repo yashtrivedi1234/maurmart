@@ -1,16 +1,18 @@
-import { Smartphone, UtensilsCrossed, Shirt, Sparkles, Home, Headphones } from "lucide-react";
+import { Package } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const categories = [
-  { name: "Electronics", icon: Smartphone, color: "145 63% 42%" },
-  { name: "Kitchen", icon: UtensilsCrossed, color: "30 80% 55%" },
-  { name: "Fashion", icon: Shirt, color: "280 60% 55%" },
-  { name: "Beauty", icon: Sparkles, color: "340 70% 55%" },
-  { name: "Home & Living", icon: Home, color: "200 70% 50%" },
-  { name: "Audio", icon: Headphones, color: "10 70% 55%" },
-];
+import { useGetProductsQuery } from "@/store/api/productApi";
+import { useMemo } from "react";
 
 const CategoriesSection = () => {
+  const { data: products } = useGetProductsQuery({});
+
+  // Extract unique categories from products dynamically
+  const categories = useMemo(() => {
+    if (!products || products.length === 0) return [];
+    
+    const uniqueCategories = Array.from(new Set(products.map((p: any) => p.category)));
+    return uniqueCategories; // Show max 6 categories
+  }, [products]);
   return (
     <section className="py-16 bg-muted/50">
       <div className="container mx-auto px-4">
@@ -24,21 +26,24 @@ const CategoriesSection = () => {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {categories.map(({ name, icon: Icon, color }) => (
-            <Link
-              key={name}
-              to={`/shop?category=${encodeURIComponent(name)}`}
-              className="group bg-card rounded-xl p-6 text-center card-shadow hover:card-shadow-hover hover:-translate-y-1 transition-all duration-300"
-            >
-              <div
-                className="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center transition-transform duration-300 group-hover:scale-110"
-                style={{ backgroundColor: `hsl(${color} / 0.12)` }}
+          {categories && categories.length > 0 ? (
+            categories.map((name) => (
+              <Link
+                key={name}
+                to={`/shop?category=${encodeURIComponent(name)}`}
+                className="group bg-card rounded-xl p-6 text-center card-shadow hover:card-shadow-hover hover:-translate-y-1 transition-all duration-300"
               >
-                <Icon className="h-7 w-7" style={{ color: `hsl(${color})` }} />
-              </div>
-              <span className="font-medium text-sm text-foreground">{name}</span>
-            </Link>
-          ))}
+                <div className="w-14 h-14 rounded-xl mx-auto mb-4 flex items-center justify-center transition-transform duration-300 group-hover:scale-110 bg-primary/10">
+                  <Package className="h-7 w-7 text-primary" />
+                </div>
+                <span className="font-medium text-sm text-foreground">{name}</span>
+              </Link>
+            ))
+          ) : (
+            <div className="col-span-2 md:col-span-3 lg:col-span-6 text-center py-8">
+              <p className="text-muted-foreground">No categories available yet</p>
+            </div>
+          )}
         </div>
       </div>
     </section>

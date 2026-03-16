@@ -10,6 +10,12 @@ import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Safely extract a user id from the JWT payload, regardless of key naming
+const getUserIdFromReq = (req) => {
+  if (!req || !req.user) return null;
+  return req.user.id || req.user._id || req.user.userId || null;
+};
+
 const getTransporter = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.error("❌ Email credentials missing in .env!");
@@ -61,7 +67,7 @@ export const verifyOtp = async (req, res) => {
     user.otpExpires = undefined;
     await user.save();
 
-    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -83,7 +89,7 @@ export const loginUser = async (req, res) => {
     // Strict Admin Check
     if (email === process.env.ADMIN_EMAIL) {
       if (password === process.env.ADMIN_PASSWORD) {
-        const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+        const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
           expiresIn: "7d",
         });
         return res.json({ message: "Admin Login Successful", token, needsVerification: false });
@@ -171,7 +177,12 @@ export const resendOtp = async (req, res) => {
 
 export const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select("-password");
+    const userId = getUserIdFromReq(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
+
+    const user = await User.findById(userId).select("-password");
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (err) {
@@ -182,14 +193,19 @@ export const getUserProfile = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   const { name, phone } = req.body;
   try {
-    const user = await User.findById(req.user.id);
+    const userId = getUserIdFromReq(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
+
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (name) user.name = name;
     if (phone) user.phone = phone;
 
     await user.save();
-    const updatedUser = await User.findById(req.user.id).select("-password");
+    const updatedUser = await User.findById(userId).select("-password");
     res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -201,7 +217,12 @@ export const uploadProfilePic = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
-    const user = await User.findById(req.user.id);
+    const userId = getUserIdFromReq(req);
+    if (!userId) {
+      return res.status(401).json({ message: "Invalid token payload" });
+    }
+
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     // Delete old profile pic from Cloudinary if it exists
@@ -220,7 +241,7 @@ export const uploadProfilePic = async (req, res) => {
       return res.status(500).json({ message: "Failed to upload image to Cloudinary" });
     }
 
-    const updatedUser = await User.findById(req.user.id).select("-password");
+    const updatedUser = await User.findById(userId).select("-password");
     res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -232,6 +253,79 @@ export const getAllUsers = async (req, res) => {
     const users = await User.find({}).select("-password").sort({ createdAt: -1 });
     res.json(users);
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Generate a 4-digit reset code
+    const resetCode = Math.floor(1000 + Math.random() * 9000).toString();
+    const resetCodeExpiry = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    // Save reset code to user
+    user.resetCode = resetCode;
+    user.resetCodeExpiry = resetCodeExpiry;
+    await user.save();
+
+    // Send email with reset code
+    const transporter = getTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Password Reset Code - Maurya Mart",
+      html: `
+        <h2>Password Reset Request</h2>
+        <p>Your password reset code is: <strong>${resetCode}</strong></p>
+        <p>This code will expire in 10 minutes.</p>
+        <p>If you didn't request this, please ignore this email.</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.json({ message: "Reset code sent to your email" });
+  } catch (err) {
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  try {
+    if (!email || !code || !newPassword) {
+      return res.status(400).json({ message: "Email, code, and new password are required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Check if reset code is valid
+    if (user.resetCode !== code) {
+      return res.status(400).json({ message: "Invalid reset code" });
+    }
+
+    // Check if reset code has expired
+    if (Date.now() > user.resetCodeExpiry) {
+      return res.status(400).json({ message: "Reset code has expired" });
+    }
+
+    // Hash new password and update
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetCode = null;
+    user.resetCodeExpiry = null;
+    await user.save();
+
+    res.json({ message: "Password reset successful. Please log in with your new password." });
+  } catch (err) {
+    console.error("Reset Password Error:", err);
     res.status(500).json({ message: err.message });
   }
 };

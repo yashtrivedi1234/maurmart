@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getUserProfile, verifyOtp, resendOtp, updateUserProfile, uploadProfilePic, getAllUsers } from "../controllers/auth.Controller.js";
+import { registerUser, loginUser, getUserProfile, verifyOtp, resendOtp, updateUserProfile, uploadProfilePic, getAllUsers, forgotPassword, resetPassword } from "../controllers/auth.Controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.Middleware.js";
 import multer from "multer";
 import path from "path";
@@ -11,6 +11,12 @@ const __dirname = path.dirname(__filename);
 
 const router = express.Router();
 
+// Helper to safely read user id from JWT payload
+const getUserIdFromReq = (req) => {
+  if (!req || !req.user) return "unknown";
+  return req.user.id || req.user._id || req.user.userId || "unknown";
+};
+
 // Configure Multer for local storage
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -18,8 +24,9 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    console.log("Processing upload for user:", req.user?.id);
-    const uniqueName = `profile-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`;
+    const userId = getUserIdFromReq(req);
+    console.log("Processing upload for user:", userId);
+    const uniqueName = `profile-${userId}-${Date.now()}${path.extname(file.originalname)}`;
     cb(null, uniqueName);
   },
 });
@@ -41,6 +48,8 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // Protected routes
 router.get("/profile", authMiddleware, getUserProfile);

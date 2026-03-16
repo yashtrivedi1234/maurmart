@@ -47,7 +47,13 @@ interface Order {
   status: string;
   paymentStatus: string;
   paymentMethod: string;
-  shippingAddress: string;
+  shippingAddress: {
+    name?: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    pincode?: string;
+  } | string;
   items: OrderItem[];
 }
 
@@ -193,7 +199,18 @@ const AdminOrders = () => {
                   <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3">Customer Information</h4>
                   <p className="font-semibold text-lg">{selectedOrder.user?.name}</p>
                   <p className="text-muted-foreground">{selectedOrder.user?.email}</p>
-                  <p className="text-muted-foreground mt-2">{selectedOrder.shippingAddress || "No address provided"}</p>
+                  <div className="text-muted-foreground mt-2 text-sm">
+                    {typeof selectedOrder.shippingAddress === 'object' ? (
+                      <>
+                        <p>{selectedOrder.shippingAddress?.name}</p>
+                        <p>{selectedOrder.shippingAddress?.address}, {selectedOrder.shippingAddress?.city}</p>
+                        <p>PIN: {selectedOrder.shippingAddress?.pincode}</p>
+                        <p>Phone: {selectedOrder.shippingAddress?.phone}</p>
+                      </>
+                    ) : (
+                      <p>{selectedOrder.shippingAddress || "No address provided"}</p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <h4 className="font-bold text-sm uppercase tracking-wider text-muted-foreground mb-3">Order Information</h4>
