@@ -4,6 +4,7 @@ import { Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import API from "../../api/api";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -27,17 +28,9 @@ export default function AdminLogin() {
 
     try {
       // Call backend to verify admin credentials
-      const response = await fetch("/api/admin/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials),
-      });
+      const response = await API.post("/admin/login", credentials);
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Invalid credentials");
-      }
+      const data = response.data;
 
       // Store admin token in localStorage
       localStorage.setItem("adminToken", data.token);
