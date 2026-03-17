@@ -24,6 +24,7 @@ const userSchema = new mongoose.Schema(
     profilePic: { type: String, default: "" },
     profilePic_public_id: { type: String, default: "" },
     phone: { type: String, default: "" },
+    googleId: { type: String, default: null },
   },
   { timestamps: true }
 );

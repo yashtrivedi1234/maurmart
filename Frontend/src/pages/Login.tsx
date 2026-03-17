@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/assets/logo.png";
+import { GoogleLogin } from "@react-oauth/google";
 
 import { useLoginMutation, useRegisterMutation, useVerifyOtpMutation, useResendOtpMutation, useForgotPasswordMutation, useResetPasswordMutation } from "@/store/api/authApi";
 
@@ -29,6 +30,70 @@ const Login = () => {
   const [resendOtp, { isLoading: isResendLoading }] = useResendOtpMutation();
   const [forgotPassword, { isLoading: isForgotLoading }] = useForgotPasswordMutation();
   const [resetPassword, { isLoading: isResetLoading }] = useResetPasswordMutation();
+
+  const handleGoogleSuccess = async (credentialResponse: any) => {
+    try {
+      const token = credentialResponse.credential;
+      
+      // Decode JWT to get user info
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+      const googleData = JSON.parse(jsonPayload);
+
+      // Send to backend for authentication
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}/api/auth/google-login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          name: googleData.name,
+          email: googleData.email,
+          picture: googleData.picture,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.token) {
+        localStorage.setItem('token', result.token);
+        window.dispatchEvent(new Event('tokenChanged'));
+        toast({
+          title: 'Welcome!',
+          description: result.message || 'You have signed in successfully with Google.',
+        });
+        navigate('/');
+      } else {
+        toast({
+          title: 'Error',
+          description: result.message || 'Google login failed.',
+          variant: 'destructive',
+        });
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      toast({
+        title: 'Error',
+        description: error.message || 'Google login failed. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleGoogleError = () => {
+    toast({
+      title: 'Error',
+      description: 'Google login failed. Please try again.',
+      variant: 'destructive',
+    });
+  };
 
   const handleResendOtp = async () => {
     try {
@@ -374,6 +439,28 @@ const Login = () => {
                 ? "Create Account"
                 : "Sign In"}
             </Button>
+
+            {!isSignUp && !isVerifying && !isForgotPassword && (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t border-muted-foreground/20" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">
+                      Or continue with
+                    </span>
+                  </div>
+                </div>
+
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  text="signin_with"
+                  width="100%"
+                />
+              </>
+            )}
           </form>
 
           <div className="mt-6 text-center text-sm text-muted-foreground">

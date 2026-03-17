@@ -366,3 +366,56 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+export const googleLogin = async (req, res) => {
+  const { email, name, picture } = req.body;
+  try {
+    if (!email) {
+      return res.status(400).json({ message: "Email is required from Google" });
+    }
+
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      // Create new user from Google data
+      user = await User.create({
+        name: name || email.split("@")[0],
+        email,
+        password: bcrypt.hashSync(Math.random().toString(36).slice(-10), 10), // Random password
+        isVerified: true, // Google verified email
+        profilePic: picture || null,
+        googleId: email, // Store Google email as google ID
+      });
+    } else {
+      // Update user profile if they have new data
+      if (!user.profilePic && picture) {
+        user.profilePic = picture;
+      }
+      if (!user.isVerified) {
+        user.isVerified = true;
+      }
+      await user.save();
+    }
+
+    // Create JWT token
+    const token = jwt.sign(
+      { id: user._id.toString(), role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.json({
+      message: user ? "Welcome back!" : "Account created successfully",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        profilePic: user.profilePic,
+      },
+    });
+  } catch (err) {
+    console.error("Google Login Error:", err);
+    res.status(500).json({ message: "Google login failed", error: err.message });
+  }
+};

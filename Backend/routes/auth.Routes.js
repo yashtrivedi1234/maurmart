@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getUserProfile, verifyOtp, resendOtp, updateUserProfile, uploadProfilePic, getAllUsers, forgotPassword, resetPassword } from "../controllers/auth.Controller.js";
+import { registerUser, loginUser, getUserProfile, verifyOtp, resendOtp, updateUserProfile, uploadProfilePic, getAllUsers, forgotPassword, resetPassword, googleLogin } from "../controllers/auth.Controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.Middleware.js";
 import multer from "multer";
 import path from "path";
@@ -50,6 +50,7 @@ router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
+router.post("/google-login", googleLogin);
 
 // Protected routes
 router.get("/profile", authMiddleware, getUserProfile);
