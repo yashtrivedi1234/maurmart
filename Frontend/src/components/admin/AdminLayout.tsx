@@ -47,7 +47,7 @@ const AdminLayout = () => {
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r sticky top-0 h-screen">
         <div className="p-6 border-b flex items-center gap-3">
-          <img src={Logo} alt="Maurya Mart" className="h-[60px] w-auto object-contain drop-shadow-md" />
+          <img src={Logo} alt="MaurMart" className="h-[60px] w-auto object-contain drop-shadow-md" />
           
         </div>
 

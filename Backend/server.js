@@ -23,6 +23,7 @@ import brandRoutes from "./routes/brand.Routes.js";
 import contactRoutes from "./routes/contact.Routes.js";
 import faqRoutes from "./routes/faq.Routes.js";
 import adminRoutes from "./routes/admin.Routes.js";
+import chatRoutes from "./routes/chat.Routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ const defaultOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
   "http://localhost:8080",
+  "https://maurmart.vercel.app",
 ];
 
 const envOrigins = (process.env.CORS_ORIGINS || "")
@@ -82,6 +84,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/brands", brandRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/faqs", faqRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
