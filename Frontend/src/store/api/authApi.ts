@@ -6,12 +6,17 @@ export const authApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/api/auth`,
     prepareHeaders: (headers) => {
+      // Check token first, then adminToken (user token takes priority)
       const userToken = localStorage.getItem("token");
-      const adminToken = localStorage.getItem("adminToken");
-      const token = adminToken || userToken;
+      const token = userToken;
+      
       if (token) {
+        console.log("📤 Sending USER token in Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        console.warn("⚠️ No user token found in localStorage");
       }
+      
       return headers;
     },
   }),
@@ -48,7 +53,10 @@ export const authApi = createApi({
       }),
     }),
     getProfile: builder.query({
-      query: () => "/profile",
+      query: () => {
+        console.log("📥 Fetching profile...");
+        return "/profile";
+      },
       providesTags: ["User"],
     }),
     updateProfile: builder.mutation({

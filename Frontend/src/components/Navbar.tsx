@@ -1,6 +1,6 @@
 import { ShoppingCart, Menu, X, Search, User as UserIcon, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useGetProfileQuery } from "@/store/api/authApi";
 import { useGetCartQuery } from "@/store/api/cartApi";
@@ -12,10 +12,23 @@ import Logo from "@/assets/logo.png";
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
+  const [, setTokenUpdate] = useState(0); // Trigger re-render on token change
+  
+  // Always read fresh token from localStorage
+  const token = localStorage.getItem("token");
+  
   // Fetch profile/cart once when a token exists; let RTK Query handle cache & re-fetches
   const { data: user } = useGetProfileQuery(undefined, { skip: !token });
   const { data: cart } = useGetCartQuery(undefined, { skip: !token });
+  
+  // Memoize cachedUser to prevent unnecessary recalculations
+  const cachedUser = useMemo(() => {
+    if (user) return user;
+    if (token && localStorage.getItem('user')) {
+      return JSON.parse(localStorage.getItem('user')!);
+    }
+    return null;
+  }, [user, token]);
   const navigate = useNavigate();
   const location = useLocation();
   const wishlistItems = useSelector((state: RootState) => state.wishlist.items);
@@ -24,12 +37,17 @@ const Navbar = () => {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "token") {
-        setToken(e.newValue);
+        console.log("📦 Token changed via storage event");
+        setTokenUpdate(prev => prev + 1); // Force re-render
       }
     };
 
     const handleTokenChange = () => {
-      setToken(localStorage.getItem("token"));
+      console.log("🔄 tokenChanged event fired, forcing component re-render");
+      setTokenUpdate(prev => prev + 1); // Force re-render
+      const newToken = localStorage.getItem("token");
+      console.log("🔑 New token from localStorage:", newToken ? newToken.substring(0, 50) + "..." : "null");
+      console.log("✅ Component will re-render and RTK Query will automatically fetch profile");
     };
 
     window.addEventListener("storage", handleStorageChange);
@@ -107,14 +125,14 @@ const Navbar = () => {
                 </Button>
               </Link>
 
-              {user ? (
+              {cachedUser ? (
                 <div className="flex items-center gap-2">
                   <Link to="/profile">
                     <Button variant="outline" size="sm" className="gap-2 border-primary/20 hover:bg-primary/5 rounded-full pl-1 pr-3">
                       <div className="w-6 h-6 rounded-full hero-gradient flex items-center justify-center text-[10px] text-white font-bold">
-                        {user.name.charAt(0).toUpperCase()}
+                        {cachedUser?.name?.charAt(0).toUpperCase()}
                       </div>
-                      <span className="max-w-[100px] truncate font-medium">{user.name.split(' ')[0]}</span>
+                      <span className="max-w-[100px] truncate font-medium">{cachedUser?.name?.split(' ')[0]}</span>
                     </Button>
                   </Link>
                   <Button 
@@ -123,7 +141,8 @@ const Navbar = () => {
                     className="rounded-full"
                     onClick={() => {
                       localStorage.removeItem("token");
-                      setToken(null);
+                      localStorage.removeItem("user");
+                      setTokenUpdate(prev => prev + 1); // Trigger re-render
                       navigate("/");
                     }}
                   >

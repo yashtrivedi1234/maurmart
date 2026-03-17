@@ -6,12 +6,17 @@ export const contactApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/api/contacts`,
     prepareHeaders: (headers) => {
+      // Check token first (user token takes priority)
       const userToken = localStorage.getItem("token");
-      const adminToken = localStorage.getItem("adminToken");
-      const token = adminToken || userToken;
+      const token = userToken;
+      
       if (token) {
+        console.log("📧 Sending USER token in Contact Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        console.warn("⚠️ No user token found in localStorage for Contact API");
       }
+      
       return headers;
     },
   }),

@@ -63,8 +63,21 @@ const Login = () => {
       const result = await response.json();
 
       if (result.token) {
+        console.log("✅ Google login successful!");
+        console.log("📝 Storing token:", result.token.substring(0, 50) + "...");
+        console.log("👤 User data:", result.user);
+        
+        // Clear any old admin token to avoid conflicts
+        localStorage.removeItem("adminToken");
+        
         localStorage.setItem('token', result.token);
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
+        
+        console.log("🔔 Dispatching tokenChanged event...");
         window.dispatchEvent(new Event('tokenChanged'));
+        
         toast({
           title: 'Welcome!',
           description: result.message || 'You have signed in successfully with Google.',
@@ -166,7 +179,11 @@ const Login = () => {
     try {
       if (isVerifying) {
         const result = await verifyOtp({ email, otp }).unwrap();
+        localStorage.removeItem("adminToken"); // Clear old admin token
         localStorage.setItem("token", result.token);
+        if (result.user) {
+          localStorage.setItem('user', JSON.stringify(result.user));
+        }
         window.dispatchEvent(new Event("tokenChanged"));
         toast({
           title: "Login Successful",
@@ -189,7 +206,11 @@ const Login = () => {
           });
           setIsVerifying(true);
         } else {
+          localStorage.removeItem("adminToken"); // Clear old admin token
           localStorage.setItem("token", result.token);
+          if (result.user) {
+            localStorage.setItem('user', JSON.stringify(result.user));
+          }
           window.dispatchEvent(new Event("tokenChanged"));
           toast({
             title: "Welcome Back!",

@@ -6,15 +6,24 @@ export const authMiddleware = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
+      console.error("❌ Auth Error: No authorization header provided");
       return res.status(401).json({ message: "No token provided" });
     }
 
     const token = authHeader.split(" ")[1];
+    if (!token) {
+      console.error("❌ Auth Error: Authorization header missing Bearer token");
+      return res.status(401).json({ message: "Invalid authorization header format" });
+    }
+
+    console.log("🔍 Verifying token...");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log("✅ Token verified, decoded payload:", JSON.stringify(decoded));
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ message: "Invalid or expired token" });
+    console.error("❌ Auth Error:", error.message);
+    res.status(401).json({ message: "Invalid or expired token", error: error.message });
   }
 };
 

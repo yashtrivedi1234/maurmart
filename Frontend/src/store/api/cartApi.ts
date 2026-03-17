@@ -6,12 +6,17 @@ export const cartApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/api/cart`,
     prepareHeaders: (headers) => {
+      // Check token first, then adminToken (user token takes priority)
       const userToken = localStorage.getItem("token");
-      const adminToken = localStorage.getItem("adminToken");
-      const token = adminToken || userToken;
+      const token = userToken;
+      
       if (token) {
+        console.log("📤 Sending USER token in Cart Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        console.warn("⚠️ No user token found in localStorage for Cart API");
       }
+      
       return headers;
     },
   }),

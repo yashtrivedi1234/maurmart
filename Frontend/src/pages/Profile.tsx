@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Mail, Shield, LogOut, ArrowLeft, Edit2, Camera, Save, X, Phone, Loader2, ShoppingBag, ArrowRight } from "lucide-react";
 import Navbar from "@/components/Navbar";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
 
 interface CartItem {
@@ -20,7 +20,9 @@ interface CartItem {
 }
 
 const Profile = () => {
+  // Always read fresh token from localStorage
   const token = localStorage.getItem("token");
+  
   const { data: user, isLoading, error } = useGetProfileQuery({}, { skip: !token });
   const { data: cart } = useGetCartQuery({}, { skip: !token });
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
@@ -28,23 +30,47 @@ const Profile = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Memoize displayUser to prevent infinite re-renders
+  const displayUser = useMemo(() => {
+    if (user) return user;
+    if (token && localStorage.getItem('user')) {
+      return JSON.parse(localStorage.getItem('user')!);
+    }
+    return null;
+  }, [user, token]);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
   });
 
+  // Only update form data when displayUser's name/phone actually change
   useEffect(() => {
-    if (user) {
+    if (displayUser?.name || displayUser?.phone) {
       setFormData({
-        name: user.name || "",
-        phone: user.phone || "",
+        name: displayUser.name || "",
+        phone: displayUser.phone || "",
       });
     }
-  }, [user]);
+  }, [displayUser?.name, displayUser?.phone]); // Use specific fields, not the whole object
+
+  // Listen for token changes and refresh component
+  useEffect(() => {
+    const handleTokenChange = () => {
+      console.log("🔄 Profile: tokenChanged event fired, re-rendering");
+      // RTK Query will automatically refetch when token changes
+    };
+
+    window.addEventListener("tokenChanged", handleTokenChange);
+    return () => {
+      window.removeEventListener("tokenChanged", handleTokenChange);
+    };
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     navigate("/login");
   };
 
@@ -93,7 +119,7 @@ const Profile = () => {
 
   if (isLoading) return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
 
-  if (error || !user) {
+  if (error || !displayUser) {
     navigate("/login");
     return null;
   }
@@ -123,8 +149,8 @@ const Profile = () => {
               <Button variant="ghost" size="sm" onClick={() => {
                 setIsEditing(false);
                 setFormData({
-                  name: user.name || "",
-                  phone: user.phone || "",
+                  name: displayUser.name || "",
+                  phone: displayUser.phone || "",
                 });
               }}>
                 <X className="h-4 w-4 mr-1" /> Cancel
@@ -141,10 +167,10 @@ const Profile = () => {
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-8 pb-8 border-b">
               <div className="relative group">
                 <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl hero-gradient flex items-center justify-center text-white text-4xl font-bold bg-muted relative">
-                  {user.profilePic ? (
-                    <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
+                  {displayUser.profilePic ? (
+                    <img src={displayUser.profilePic} alt={displayUser.name} className="w-full h-full object-cover" />
                   ) : (
-                    user.name.charAt(0).toUpperCase()
+                    displayUser.name.charAt(0).toUpperCase()
                   )}
                   {isUploadingPic && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-full">
@@ -185,8 +211,8 @@ const Profile = () => {
                   </div>
                 ) : (
                   <>
-                    <h1 className="text-3xl font-display font-bold text-foreground">{user.name}</h1>
-                    <p className="text-muted-foreground">Member since {new Date(user.createdAt).toLocaleDateString()}</p>
+                    <h1 className="text-3xl font-display font-bold text-foreground">{displayUser.name}</h1>
+                    <p className="text-muted-foreground">Member since {new Date(displayUser.createdAt).toLocaleDateString()}</p>
                   </>
                 )}
               </div>
@@ -200,7 +226,7 @@ const Profile = () => {
                   </div>
                   <div className="flex-1">
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Email Address</p>
-                    <p className="font-semibold">{user.email}</p>
+                    <p className="font-semibold">{displayUser.email}</p>
                     <p className="text-[10px] text-green-600 font-medium">Primary Contact</p>
                   </div>
                 </div>
@@ -219,7 +245,7 @@ const Profile = () => {
                         className="h-8 mt-1 text-sm rounded-lg"
                       />
                     ) : (
-                      <p className="font-semibold">{user.phone || "Not set"}</p>
+                      <p className="font-semibold">{displayUser.phone || "Not set"}</p>
                     )}
                   </div>
                 </div>

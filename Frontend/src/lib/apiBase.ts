@@ -16,3 +16,9 @@ if (isVercelFrontend && renderBackend) {
 
 // Avoid accidental double slashes when composing endpoint paths.
 export const API_BASE_URL = chosenBase.replace(/\/$/, "");
+
+console.log("🌐 API Configuration:");
+console.log("   - VITE_API_BASE_URL:", import.meta.env.VITE_API_BASE_URL || "not set");
+console.log("   - Environment:", import.meta.env.DEV ? "DEV" : "PROD");
+console.log("   - Frontend origin:", origin);
+console.log("   - Final API_BASE_URL:", API_BASE_URL);

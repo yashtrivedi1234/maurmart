@@ -6,12 +6,17 @@ export const orderApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${API_BASE_URL}/api/orders`,
     prepareHeaders: (headers) => {
+      // Check token first (user token takes priority)
       const userToken = localStorage.getItem("token");
-      const adminToken = localStorage.getItem("adminToken");
-      const token = adminToken || userToken;
+      const token = userToken;
+      
       if (token) {
+        console.log("🛍️ Sending USER token in Order Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
+      } else {
+        console.warn("⚠️ No user token found in localStorage for Order API");
       }
+      
       return headers;
     },
   }),

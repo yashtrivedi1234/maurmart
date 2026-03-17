@@ -213,7 +213,11 @@ export const resendOtp = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
+    console.log("👤 getUserProfile called - JWT payload:", req.user);
+    console.log("👤 Extracted userId:", userId);
+    
     if (!userId) {
+      console.error("❌ Invalid token payload - missing id/_id/userId. Received:", req.user);
       return res.status(401).json({ message: "Invalid token payload" });
     }
 
