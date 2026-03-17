@@ -19,12 +19,12 @@ const BrandsSection = () => {
   }
 
   return (
-    <section className="py-14 border-y border-border">
+    <section className="py-4 border-y border-border">
       <div className="container mx-auto px-4">
-        <p className="text-center text-sm font-medium text-muted-foreground mb-8 tracking-wide uppercase">
+        <p className="text-center text-sm font-medium text-muted-foreground  tracking-wide uppercase">
           Trusted Brands We Partner With
         </p>
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-14">
+        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-7">
           {brands.map((brand: any) => (
             <div
               key={brand._id}
@@ -33,7 +33,7 @@ const BrandsSection = () => {
               <img
                 src={brand.image}
                 alt="Brand"
-                className="h-12 w-auto"
+                className="h-20 w-auto"
               />
             </div>
           ))}
