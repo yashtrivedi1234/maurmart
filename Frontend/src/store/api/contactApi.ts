@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 export const contactApi = createApi({
   reducerPath: "contactApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api/contacts",
+    baseUrl: `${API_BASE_URL}/api/contacts`,
     prepareHeaders: (headers) => {
       const userToken = localStorage.getItem("token");
       const adminToken = localStorage.getItem("adminToken");

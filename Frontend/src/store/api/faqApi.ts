@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 export const faqApi = createApi({
   reducerPath: "faqApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api/faqs",
+    baseUrl: `${API_BASE_URL}/api/faqs`,
     prepareHeaders: (headers) => {
       const userToken = localStorage.getItem("token");
       const adminToken = localStorage.getItem("adminToken");

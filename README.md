@@ -395,11 +395,13 @@ Your backend can be deployed to Render, Railway, AWS, or any Node.js hosting pla
    - **Root Directory**: `Frontend`
    - **Build Command**: `npm run build`
    - **Output Directory**: `dist`
-6. Add Environment Variables:
+6. Add Environment Variables (required so API calls go to Render, not Vercel):
    ```
-   VITE_API_BASE_URL=https://your-backend-url
+   VITE_API_BASE_URL=https://your-backend.onrender.com
+   VITE_RENDER_BACKEND_URL=https://your-backend.onrender.com
    VITE_RAZORPAY_KEY_ID=your_razorpay_key
    ```
+   **Important:** Set both `VITE_API_BASE_URL` and `VITE_RENDER_BACKEND_URL` to your **Render backend URL**. Otherwise POST requests (e.g. FAQ, contact) will hit Vercel and return **405 Method Not Allowed**.
 7. Click **Deploy**
 
 #### ⚠️ Step 3: Important - Fix Routing Issue on Refresh

@@ -1,7 +1,34 @@
-import { ArrowRight } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { useSubscribeNewsletterMutation } from "@/store/api/newsletterApi";
 
 const CTASection = () => {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [subscribe, { isLoading }] = useSubscribeNewsletterMutation();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = email.trim();
+    if (!trimmed) {
+      toast({ title: "Please enter your email", variant: "destructive" });
+      return;
+    }
+    try {
+      await subscribe({ email: trimmed }).unwrap();
+      toast({ title: "Subscribed!", description: "You're on the list for updates and offers." });
+      setEmail("");
+    } catch (err: any) {
+      toast({
+        title: "Subscription failed",
+        description: err?.data?.message || err?.message || "Please try again later.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
@@ -14,16 +41,33 @@ const CTASection = () => {
             <p className="text-primary-foreground/80 max-w-md mx-auto mb-8 text-lg">
               Join thousands of happy customers. Sign up now and start saving on everyday essentials.
             </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
+            <form
+              onSubmit={handleSubmit}
+              className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto"
+            >
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 px-5 py-3 rounded-full bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary-foreground/30 text-sm"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                className="flex-1 px-5 py-3 rounded-full bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary-foreground/30 text-sm disabled:opacity-70"
               />
-              <Button variant="hero-outline" className="rounded-full px-6">
-                Subscribe <ArrowRight className="ml-1 h-4 w-4" />
+              <Button
+                type="submit"
+                variant="hero-outline"
+                className="rounded-full px-6"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    Subscribe <ArrowRight className="ml-1 h-4 w-4" />
+                  </>
+                )}
               </Button>
-            </div>
+            </form>
           </div>
         </div>
       </div>

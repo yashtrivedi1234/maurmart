@@ -2,9 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Logo from "@/assets/logo.png";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import API from "../../api/api";
+import adminApi from "@/lib/adminApi";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export default function AdminLogin() {
 
     try {
       // Call backend to verify admin credentials
-      const response = await API.post("/admin/login", credentials);
+      const response = await adminApi.post("/admin/login", credentials);
 
       const data = response.data;
 
@@ -39,9 +40,11 @@ export default function AdminLogin() {
       toast({ title: "Login successful!", description: "Welcome to admin panel" });
       navigate("/admin");
     } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || "Invalid email or password";
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: error.message || "Invalid email or password",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -54,8 +57,8 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Logo/Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-4">
-            <Lock className="w-8 h-8 text-primary" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src={Logo} alt="Maurya Mart" className="h-16 w-auto object-contain" />
           </div>
           <h1 className="text-3xl font-display font-bold text-foreground mb-2">Admin Login</h1>
           <p className="text-muted-foreground">Enter your credentials to access the admin panel</p>

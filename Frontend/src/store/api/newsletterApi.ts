@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 export const newsletterApi = createApi({
   reducerPath: "newsletterApi",
   baseQuery: fetchBaseQuery({
-    baseUrl: "/api/newsletter",
+    baseUrl: `${API_BASE_URL}/api/newsletter`,
     prepareHeaders: (headers) => {
       const userToken = localStorage.getItem("token");
       const adminToken = localStorage.getItem("adminToken");
@@ -18,7 +19,14 @@ export const newsletterApi = createApi({
     getNewsletters: builder.query({
       query: () => "/",
     }),
+    subscribeNewsletter: builder.mutation({
+      query: (body: { email: string }) => ({
+        url: "/subscribe",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
 });
 
-export const { useGetNewslettersQuery } = newsletterApi;
+export const { useGetNewslettersQuery, useSubscribeNewsletterMutation } = newsletterApi;

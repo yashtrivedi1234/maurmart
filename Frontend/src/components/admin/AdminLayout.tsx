@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import Logo from "@/assets/logo.png";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -46,13 +47,8 @@ const AdminLayout = () => {
       {/* Sidebar - Desktop */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r sticky top-0 h-screen">
         <div className="p-6 border-b flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/20">
-            M
-          </div>
-          <div>
-            <h1 className="font-display font-bold text-foreground">MaurMart</h1>
-            <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Admin Panel</p>
-          </div>
+          <img src={Logo} alt="Maurya Mart" className="h-[60px] w-auto object-contain drop-shadow-md" />
+          
         </div>
 
         <nav className="flex-1 p-4 space-y-2 mt-4">
@@ -111,9 +107,7 @@ const AdminLayout = () => {
       }`}>
         <div className="p-6 border-b flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/20">
-              M
-            </div>
+            <img src={Logo} alt="Maurya Mart" className="h-10 w-auto object-contain" />
             <div>
               <h1 className="font-display font-bold text-foreground">MaurMart</h1>
               <p className="text-[10px] text-primary font-bold uppercase tracking-wider">Admin Panel</p>
@@ -172,9 +166,7 @@ const AdminLayout = () => {
         {/* Mobile Header */}
         <header className="md:hidden bg-white border-b p-4 sticky top-0 z-30 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20 text-sm">
-              M
-            </div>
+            <img src={Logo} alt="Maurya Mart" className="h-8 w-auto object-contain" />
             <p className="font-display font-bold text-xs">MaurMart Admin</p>
           </div>
           <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
