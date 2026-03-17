@@ -5,12 +5,44 @@ import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
+import nodemailer from "nodemailer";
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
+// Verify Email Configuration on Startup
+const verifyEmailConfig = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error("❌ CRITICAL: Email credentials missing in .env file!");
+    console.error("   Required: EMAIL_USER, EMAIL_PASS");
+    return false;
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+
+  // Test the transporter
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error("❌ Email Configuration Error:", error.message);
+      console.error("   Email:", process.env.EMAIL_USER);
+      console.error("   Issue: Check if the app password is correct and Gmail account allows less secure apps");
+    } else {
+      console.log("✅ Email Configuration Valid - Ready to send emails");
+      console.log("   Email:", process.env.EMAIL_USER);
+    }
+  });
+
+  return true;
+};
 
 import authRoutes from "./routes/auth.Routes.js";
 import productRoutes from "./routes/product.Routes.js";
@@ -72,6 +104,9 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected ✅"))
   .catch((err) => console.log("MongoDB Error ❌", err.message));
+
+// Verify email configuration
+verifyEmailConfig();
 
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);

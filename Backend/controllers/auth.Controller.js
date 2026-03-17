@@ -16,17 +16,53 @@ const getUserIdFromReq = (req) => {
   return req.user.id || req.user._id || req.user.userId || null;
 };
 
+// Singleton transporter instance - reuse across all requests
+let transporterInstance = null;
+
 const getTransporter = () => {
+  if (transporterInstance) return transporterInstance;
+  
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.error("❌ Email credentials missing in .env!");
+    return null;
   }
-  return nodemailer.createTransport({
+  
+  transporterInstance = nodemailer.createTransport({
     service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
+  
+  return transporterInstance;
+};
+
+// Send email asynchronously without blocking the response
+const sendEmailAsync = (mailOptions) => {
+  try {
+    const transporter = getTransporter();
+    
+    if (!transporter) {
+      console.error("❌ Transporter not initialized. Missing email credentials in .env");
+      return;
+    }
+    
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("❌ Email Sending Error:", {
+          message: error.message,
+          code: error.code,
+          to: mailOptions.to,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.log("✅ Email sent successfully to", mailOptions.to, "- Response:", info.response);
+      }
+    });
+  } catch (err) {
+    console.error("❌ Error in sendEmailAsync:", err.message);
+  }
 };
 
 
@@ -110,30 +146,24 @@ export const loginUser = async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    console.log(`Sending Login OTP to ${email}...`);
-    try {
-      const transporter = getTransporter();
-      await transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: email,
-        subject: "Login Verification Code - MaurMart",
-        html: `
-          <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #10b981;">MaurMart Login</h2>
-            <p>Please use the following code to complete your login:</p>
-            <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #111827; margin: 20px 0;">${otp}</div>
-            <p style="color: #6b7280; font-size: 14px;">This code will expire in 10 minutes.</p>
-          </div>
-        `,
-      });
-    } catch (mailError) {
-      console.error("Mail Sending Error:", mailError);
-      return res.status(500).json({ 
-        message: "Failed to send verification code. Please check your .env settings or internet connection.",
-        error: mailError.message 
-      });
-    }
+    console.log(`Login OTP saved for ${email}. Sending email asynchronously...`);
+    
+    // Send email asynchronously (non-blocking)
+    sendEmailAsync({
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Login Verification Code - MaurMart",
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #10b981;">MaurMart Login</h2>
+          <p>Please use the following code to complete your login:</p>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #111827; margin: 20px 0;">${otp}</div>
+          <p style="color: #6b7280; font-size: 14px;">This code will expire in 10 minutes.</p>
+        </div>
+      `,
+    });
 
+    // Send response immediately without waiting for email
     res.json({ message: "Verification code sent to email", needsVerification: true });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -153,8 +183,8 @@ export const resendOtp = async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    const transporter = getTransporter();
-    await transporter.sendMail({
+    // Send email asynchronously (non-blocking)
+    sendEmailAsync({
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Your New Verification Code - MaurMart",
@@ -168,6 +198,7 @@ export const resendOtp = async (req, res) => {
       `,
     });
 
+    // Send response immediately without waiting for email
     res.json({ message: "New verification code sent to email" });
   } catch (err) {
     console.error("Resend OTP Error:", err);
@@ -274,21 +305,23 @@ export const forgotPassword = async (req, res) => {
     user.resetCodeExpiry = resetCodeExpiry;
     await user.save();
 
-    // Send email with reset code
-    const transporter = getTransporter();
-    const mailOptions = {
+    // Send email asynchronously (non-blocking)
+    sendEmailAsync({
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Password Reset Code - MaurMart",
       html: `
-        <h2>Password Reset Request</h2>
-        <p>Your password reset code is: <strong>${resetCode}</strong></p>
-        <p>This code will expire in 10 minutes.</p>
-        <p>If you didn't request this, please ignore this email.</p>
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+          <h2 style="color: #10b981;">Password Reset Request</h2>
+          <p>Your password reset code is:</p>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #111827; margin: 20px 0;">${resetCode}</div>
+          <p style="color: #6b7280; font-size: 14px;">This code will expire in 10 minutes.</p>
+          <p style="color: #6b7280; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+        </div>
       `,
-    };
+    });
 
-    await transporter.sendMail(mailOptions);
+    // Send response immediately without waiting for email
     res.json({ message: "Reset code sent to your email" });
   } catch (err) {
     console.error("Forgot Password Error:", err);

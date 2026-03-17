@@ -3,18 +3,56 @@ import Cart from "../models/cart.model.js";
 import User from "../models/user.model.js";
 import nodemailer from "nodemailer";
 
+// Singleton transporter instance - reuse across all requests
+let transporterInstance = null;
+
 const getTransporter = () => {
-  return nodemailer.createTransport({
+  if (transporterInstance) return transporterInstance;
+  
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.error("❌ Email credentials missing in .env!");
+    return null;
+  }
+  
+  transporterInstance = nodemailer.createTransport({
     service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
   });
+  
+  return transporterInstance;
 };
 
-const sendOrderEmails = async (order, userEmail) => {
-  const transporter = getTransporter();
+// Send email asynchronously without blocking the response
+const sendEmailAsync = (mailOptions) => {
+  try {
+    const transporter = getTransporter();
+    
+    if (!transporter) {
+      console.error("❌ Transporter not initialized. Missing email credentials in .env");
+      return;
+    }
+    
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error("❌ Email Sending Error:", {
+          message: error.message,
+          code: error.code,
+          to: mailOptions.to,
+          timestamp: new Date().toISOString()
+        });
+      } else {
+        console.log("✅ Email sent successfully to", mailOptions.to, "- Response:", info.response);
+      }
+    });
+  } catch (err) {
+    console.error("❌ Error in sendEmailAsync:", err.message);
+  }
+};
+
+const sendOrderEmails = (order, userEmail) => {
   const adminEmail = process.env.ADMIN_EMAIL || "admin@gmail.com";
 
   const orderItemsHtml = order.items
@@ -62,27 +100,22 @@ const sendOrderEmails = async (order, userEmail) => {
     </div>
   `;
 
-  try {
-    // Send to Customer
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: userEmail,
-      subject: `Order Receipt - MaurMart #${order._id.toString().substring(0, 8)}`,
-      html: emailTemplate("Your Order Receipt", order.shippingAddress.name),
-    });
+  // Send emails asynchronously (non-blocking)
+  sendEmailAsync({
+    from: process.env.EMAIL_USER,
+    to: userEmail,
+    subject: `Order Receipt - MaurMart #${order._id.toString().substring(0, 8)}`,
+    html: emailTemplate("Your Order Receipt", order.shippingAddress.name),
+  });
 
-    // Send to Owner
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: adminEmail,
-      subject: `New Order Received - MaurMart #${order._id.toString().substring(0, 8)}`,
-      html: emailTemplate("New Order Details", "Admin"),
-    });
+  sendEmailAsync({
+    from: process.env.EMAIL_USER,
+    to: adminEmail,
+    subject: `New Order Received - MaurMart #${order._id.toString().substring(0, 8)}`,
+    html: emailTemplate("New Order Details", "Admin"),
+  });
 
-    console.log("Order emails sent successfully");
-  } catch (error) {
-    console.error("Error sending order emails:", error);
-  }
+  console.log("Order emails queued for sending");
 };
 
 export const createOrder = async (req, res) => {
