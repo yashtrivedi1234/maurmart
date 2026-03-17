@@ -3,6 +3,9 @@ import { FAQ } from "../models/faq.model.js";
 export const getFAQs = async (req, res) => {
   try {
     const faqs = await FAQ.find().sort({ category: 1, createdAt: 1 }).lean();
+    res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
     res.status(200).json(faqs);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch FAQs", error: error.message });
