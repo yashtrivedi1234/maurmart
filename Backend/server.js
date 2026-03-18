@@ -12,14 +12,12 @@ import nodemailer from "nodemailer";
    🔧 Configurations
 ======================= */
 
-// Cloudinary Config
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Email Verification
 const verifyEmailConfig = () => {
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
     console.error("❌ Email credentials missing!");
@@ -46,7 +44,7 @@ const verifyEmailConfig = () => {
 };
 
 /* =======================
-   📦 Imports (Routes)
+   📦 Routes
 ======================= */
 
 import authRoutes from "./routes/auth.Routes.js";
@@ -103,7 +101,6 @@ app.use(
       if (allowedOrigins.includes(origin)) return callback(null, true);
       return callback(new Error("Not allowed by CORS"));
     },
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
     credentials: true,
   })
 );
@@ -116,7 +113,7 @@ app.use(express.json());
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 /* =======================
-   ❤️ Health Check API
+   ❤️ USER FRIENDLY HEALTH
 ======================= */
 
 app.get("/health", (req, res) => {
@@ -126,65 +123,79 @@ app.get("/health", (req, res) => {
     const hrs = Math.floor(seconds / 3600);
     const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
-    return `${hrs}h ${mins}m ${secs}s`;
+    return `${hrs} hr ${mins} min ${secs} sec`;
   };
+
+  const formatBytes = (bytes) =>
+    (bytes / 1024 / 1024).toFixed(2) + " MB";
 
   const dbState = mongoose.connection.readyState;
   const dbStatusMap = {
-    0: "disconnected",
-    1: "connected",
-    2: "connecting",
-    3: "disconnecting",
+    0: "❌ Disconnected",
+    1: "✅ Connected",
+    2: "⏳ Connecting",
+    3: "⚠️ Disconnecting",
   };
 
-  const emailConfigured =
-    process.env.EMAIL_USER && process.env.EMAIL_PASS ? true : false;
+  const cpuLoad = os.loadavg()[0];
+  let cpuStatus = "✅ Normal";
+  if (cpuLoad > 5) cpuStatus = "⚠️ High Load";
+  if (cpuLoad > 10) cpuStatus = "❌ Very High Load";
 
   res.status(200).json({
+    status: "✅ Server is running smoothly",
+
+    "📅 Current Time": new Date().toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    }),
+
+    "⏱ Server Uptime": formatUptime(uptimeSeconds),
+
+    "🚀 Server Started At": new Date(serverStartTime).toLocaleString("en-IN", {
+      timeZone: "Asia/Kolkata",
+    }),
+
+    "💻 System Info": {
+      OS: process.platform,
+      "Node Version": process.version,
+      Environment: process.env.NODE_ENV || "development",
+      "CPU Cores": os.cpus().length,
+      "CPU Load": `${cpuLoad.toFixed(2)} (${cpuStatus})`,
+    },
+
+    "🧠 Memory Usage": {
+      "App Memory Used": formatBytes(process.memoryUsage().heapUsed),
+      "Total System Memory": formatBytes(os.totalmem()),
+      "Free Memory": formatBytes(os.freemem()),
+    },
+
+    "🔗 Services Status": {
+      Database: dbStatusMap[dbState],
+      Email:
+        process.env.EMAIL_USER && process.env.EMAIL_PASS
+          ? "✅ Working"
+          : "❌ Not Configured",
+      Cloudinary: process.env.CLOUDINARY_CLOUD_NAME
+        ? "✅ Connected"
+        : "❌ Not Configured",
+    },
+  });
+});
+
+/* =======================
+   🧠 DEVELOPER HEALTH
+======================= */
+
+app.get("/health/dev", (req, res) => {
+  res.status(200).json({
     status: "OK",
-
-    time: {
-      iso: new Date().toISOString(),
-      local: new Date().toLocaleString(),
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      serverStartTime: serverStartTime.toISOString(),
-    },
-
-    uptime: {
-      seconds: uptimeSeconds,
-      human: formatUptime(uptimeSeconds),
-    },
-
-    request: {
-      method: req.method,
-      url: req.originalUrl,
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    },
-
-    system: {
-      platform: process.platform,
-      nodeVersion: process.version,
-      environment: process.env.NODE_ENV || "development",
-      cpuCores: os.cpus().length,
-      loadAverage: os.loadavg(),
-    },
-
-    memory: {
-      rss: process.memoryUsage().rss,
-      heapTotal: process.memoryUsage().heapTotal,
-      heapUsed: process.memoryUsage().heapUsed,
-      freeSystemMemory: os.freemem(),
-      totalSystemMemory: os.totalmem(),
-    },
-
-    services: {
-      database: dbStatusMap[dbState],
-      email: emailConfigured ? "configured" : "missing",
-      cloudinary: process.env.CLOUDINARY_CLOUD_NAME
-        ? "configured"
-        : "missing",
-    },
+    uptime: process.uptime(),
+    timestamp: new Date(),
+    memory: process.memoryUsage(),
+    cpu: os.loadavg(),
+    platform: process.platform,
+    nodeVersion: process.version,
+    dbState: mongoose.connection.readyState,
   });
 });
 
@@ -219,7 +230,7 @@ app.use((err, req, res, next) => {
 });
 
 /* =======================
-   🛢️ MongoDB Connection
+   🛢️ MongoDB + Server
 ======================= */
 
 mongoose
@@ -227,7 +238,6 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB Connected");
 
-    // Start server only after DB connects
     app.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       verifyEmailConfig();
