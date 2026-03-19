@@ -208,13 +208,13 @@ app.get("/health/dev", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/newsletter", newsletterRoutes);
-app.use("/api/hero", heroRoutes);
+app.use("/api/heroes", heroRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/brands", brandRoutes);
-app.use("/api/contact", contactRoutes);
-app.use("/api/faq", faqRoutes);
+app.use("/api/contacts", contactRoutes);
+app.use("/api/faqs", faqRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
 

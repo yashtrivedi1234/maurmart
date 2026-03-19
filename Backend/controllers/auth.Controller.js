@@ -108,7 +108,7 @@ export const verifyOtp = async (req, res) => {
     await user.save();
 
     const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
+      expiresIn: "24h",
     });
 
     res.json({ message: "Account verified successfully", token });
@@ -130,7 +130,7 @@ export const loginUser = async (req, res) => {
     if (email === process.env.ADMIN_EMAIL) {
       if (password === process.env.ADMIN_PASSWORD) {
         const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
-          expiresIn: "7d",
+          expiresIn: "24h",
         });
         return res.json({ message: "Admin Login Successful", token, needsVerification: false });
       } else {
@@ -405,7 +405,7 @@ export const googleLogin = async (req, res) => {
     const token = jwt.sign(
       { id: user._id.toString(), role: user.role },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "24h" }
     );
 
     res.json({

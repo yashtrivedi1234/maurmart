@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Lock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,12 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const [credentials, setCredentials] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    // Clear any existing admin session when visiting login page
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("isAdmin");
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials({ ...credentials, [e.target.name]: e.target.value });
