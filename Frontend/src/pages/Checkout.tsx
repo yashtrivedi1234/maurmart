@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { ChevronLeft, CreditCard, Landmark, Wallet, CheckCircle2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useCreateRazorpayOrderMutation, useVerifyPaymentMutation } from "@/store/api/paymentApi";
+import { useGetProfileQuery } from "@/store/api/authApi";
 
 declare global {
   interface Window {
@@ -36,7 +37,7 @@ const Checkout = () => {
   const [createOrder, { isLoading: isPlacingOrder }] = useCreateOrderMutation();
   const [createRazorpayOrder, { isLoading: isCreatingRPOrder }] = useCreateRazorpayOrderMutation();
   const [verifyPayment, { isLoading: isVerifyingPayment }] = useVerifyPaymentMutation();
-
+  const { data: user } = useGetProfileQuery();
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
     phone: "",
@@ -44,6 +45,21 @@ const Checkout = () => {
     city: "",
     pincode: "",
   });
+
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // Pre-fill from profile
+  useEffect(() => {
+    if (user) {
+      setShippingAddress({
+        name: user.name || "",
+        phone: user.phone || "",
+        address: user.address || "",
+        city: user.city || "",
+        pincode: user.pincode || "",
+      });
+    }
+  }, [user]);
 
   const [paymentMethod, setPaymentMethod] = useState("Online Payment");
   const [isSuccess, setIsSuccess] = useState(false);
@@ -64,12 +80,38 @@ const Checkout = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setShippingAddress({ ...shippingAddress, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setShippingAddress({ ...shippingAddress, [name]: value });
+    // Clear error when user types
+    if (errors[name]) {
+      setErrors({ ...errors, [name]: "" });
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+
+    if (!shippingAddress.name.trim()) newErrors.name = "Full Name is required";
+    else if (shippingAddress.name.length < 3) newErrors.name = "Name must be at least 3 characters";
+
+    if (!shippingAddress.phone.trim()) newErrors.phone = "Phone Number is required";
+    else if (!/^\d{10}$/.test(shippingAddress.phone)) newErrors.phone = "Enter a valid 10-digit phone number";
+
+    if (!shippingAddress.address.trim()) newErrors.address = "Full Address is required";
+    else if (shippingAddress.address.length < 10) newErrors.address = "Address must be at least 10 characters";
+
+    if (!shippingAddress.city.trim()) newErrors.city = "City is required";
+
+    if (!shippingAddress.pincode.trim()) newErrors.pincode = "Pincode is required";
+    else if (!/^\d{6}$/.test(shippingAddress.pincode)) newErrors.pincode = "Enter a valid 6-digit pincode";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handlePayment = async () => {
-    if (!shippingAddress.name || !shippingAddress.phone || !shippingAddress.address || !shippingAddress.city || !shippingAddress.pincode) {
-      toast.error("Please fill all shipping details");
+    if (!validateForm()) {
+      toast.error("Please correct the errors in the form");
       return;
     }
 
@@ -82,10 +124,9 @@ const Checkout = () => {
 
       toast.loading("Initiating payment...");
 
-      // 1. Create Razorpay Order on Backend
-      // The user requested ₹1 for testing
-      const testAmount = 1; 
-      const razorpayOrder = await createRazorpayOrder(testAmount).unwrap();
+      // Use actual total amount for payment
+      const totalAmount = calculateTotal();
+      const razorpayOrder = await createRazorpayOrder(totalAmount).unwrap();
 
       if (!razorpayOrder || !razorpayOrder.id) {
         toast.error("Failed to create payment order");
@@ -98,7 +139,7 @@ const Checkout = () => {
         amount: razorpayOrder.amount,
         currency: razorpayOrder.currency,
         name: "MaurMart",
-        description: "Test Transaction",
+        description: "Order Payment",
         order_id: razorpayOrder.id,
         handler: async (response: {
           razorpay_order_id: string;
@@ -220,24 +261,29 @@ const Checkout = () => {
               </h2>
               <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" name="name" placeholder="John Doe" value={shippingAddress.name} onChange={handleInputChange} className="rounded-xl" />
+                  <Label htmlFor="name">Full Name <span className="text-destructive">*</span></Label>
+                  <Input id="name" name="name" placeholder="Enter Your Full Name" value={shippingAddress.name} onChange={handleInputChange} className={`rounded-xl ${errors.name ? "border-destructive ring-destructive" : ""}`} />
+                  {errors.name && <p className="text-[10px] text-destructive font-medium px-1">{errors.name}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" name="phone" placeholder="+91 9876543210" value={shippingAddress.phone} onChange={handleInputChange} className="rounded-xl" />
+                  <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
+                  <Input id="phone" name="phone" placeholder="Enter Your Mobile Number" value={shippingAddress.phone} onChange={handleInputChange} className={`rounded-xl ${errors.phone ? "border-destructive ring-destructive" : ""}`} />
+                  {errors.phone && <p className="text-[10px] text-destructive font-medium px-1">{errors.phone}</p>}
                 </div>
                 <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="address">Full Address</Label>
-                  <Input id="address" name="address" placeholder="House No, Street, Landmark" value={shippingAddress.address} onChange={handleInputChange} className="rounded-xl" />
+                  <Label htmlFor="address">Full Address <span className="text-destructive">*</span></Label>
+                  <Input id="address" name="address" placeholder="Enter Your Full Address" value={shippingAddress.address} onChange={handleInputChange} className={`rounded-xl ${errors.address ? "border-destructive ring-destructive" : ""}`} />
+                  {errors.address && <p className="text-[10px] text-destructive font-medium px-1">{errors.address}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" name="city" placeholder="Mumbai" value={shippingAddress.city} onChange={handleInputChange} className="rounded-xl" />
+                  <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
+                  <Input id="city" name="city" placeholder="Enter Your City" value={shippingAddress.city} onChange={handleInputChange} className={`rounded-xl ${errors.city ? "border-destructive ring-destructive" : ""}`} />
+                  {errors.city && <p className="text-[10px] text-destructive font-medium px-1">{errors.city}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="pincode">Pincode</Label>
-                  <Input id="pincode" name="pincode" placeholder="400001" value={shippingAddress.pincode} onChange={handleInputChange} className="rounded-xl" />
+                  <Label htmlFor="pincode">Pincode <span className="text-destructive">*</span></Label>
+                  <Input id="pincode" name="pincode" placeholder="Enter Your Pincode" value={shippingAddress.pincode} onChange={handleInputChange} className={`rounded-xl ${errors.pincode ? "border-destructive ring-destructive" : ""}`} />
+                  {errors.pincode && <p className="text-[10px] text-destructive font-medium px-1">{errors.pincode}</p>}
                 </div>
               </form>
             </section>
@@ -327,7 +373,7 @@ const Checkout = () => {
                 onClick={handlePayment}
                 disabled={isPlacingOrder || isCreatingRPOrder}
               >
-                {isPlacingOrder || isCreatingRPOrder ? "Processing..." : "Pay ₹1 (Test Payment)"}
+                {isPlacingOrder || isCreatingRPOrder ? "Processing..." : `Pay ₹${calculateTotal().toLocaleString("en-IN")}`}
               </Button>
 
               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">

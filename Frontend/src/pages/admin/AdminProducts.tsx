@@ -44,6 +44,11 @@ interface Product {
   isFeatured?: boolean;
   isNewArrival?: boolean;
   isTrending?: boolean;
+  highlights?: string[];
+  specifications?: { label: string; value: string }[];
+  questions?: { question: string; answer: string }[];
+  bankOffers?: string[];
+  inTheBox?: string[];
 }
 
 const AdminProducts = () => {
@@ -103,7 +108,11 @@ const AdminProducts = () => {
 
       const formData = new FormData();
       Object.entries(currentProduct).forEach(([key, value]) => {
-        formData.append(key, String(value));
+        if (Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, String(value));
+        }
       });
       formData.append("image", selectedFile);
 
@@ -122,7 +131,11 @@ const AdminProducts = () => {
       const formData = new FormData();
       Object.entries(currentProduct).forEach(([key, value]) => {
         if (key !== "_id" && key !== "image") {
-          formData.append(key, String(value));
+          if (Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else {
+            formData.append(key, String(value));
+          }
         }
       });
       if (selectedFile) {
@@ -219,7 +232,7 @@ const AdminProducts = () => {
                   <Checkbox 
                     id="isFeatured" 
                     checked={currentProduct.isFeatured || false}
-                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isFeatured: checked})}
+                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isFeatured: Boolean(checked)})}
                   />
                   <Label htmlFor="isFeatured" className="text-sm font-medium cursor-pointer">Featured</Label>
                 </div>
@@ -227,7 +240,7 @@ const AdminProducts = () => {
                   <Checkbox 
                     id="isNewArrival" 
                     checked={currentProduct.isNewArrival || false}
-                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isNewArrival: checked})}
+                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isNewArrival: Boolean(checked)})}
                   />
                   <Label htmlFor="isNewArrival" className="text-sm font-medium cursor-pointer">New Arrival</Label>
                 </div>
@@ -235,12 +248,127 @@ const AdminProducts = () => {
                   <Checkbox 
                     id="isTrending" 
                     checked={currentProduct.isTrending || false}
-                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isTrending: checked})}
+                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isTrending: Boolean(checked)})}
                   />
                   <Label htmlFor="isTrending" className="text-sm font-medium cursor-pointer text-destructive">🔥 Trending</Label>
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Product Highlights</h3>
+                {(currentProduct.highlights || []).map((h, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={h} onChange={(e) => {
+                      const newH = [...(currentProduct.highlights || [])];
+                      newH[i] = e.target.value;
+                      setCurrentProduct({...currentProduct, highlights: newH});
+                    }} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                      const newH = (currentProduct.highlights || []).filter((_, idx) => idx !== i);
+                      setCurrentProduct({...currentProduct, highlights: newH});
+                    }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, highlights: [...(currentProduct.highlights || []), ""]});
+                }}>+ Add Highlight</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Specifications</h3>
+                {(currentProduct.specifications || []).map((s, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Label (e.g. Color)" value={s.label} onChange={(e) => {
+                      const newS = [...(currentProduct.specifications || [])];
+                      newS[i] = { ...newS[i], label: e.target.value };
+                      setCurrentProduct({...currentProduct, specifications: newS});
+                    }} />
+                    <div className="flex gap-2">
+                      <Input placeholder="Value (e.g. Red)" value={s.value} onChange={(e) => {
+                        const newS = [...(currentProduct.specifications || [])];
+                        newS[i] = { ...newS[i], value: e.target.value };
+                        setCurrentProduct({...currentProduct, specifications: newS});
+                      }} />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => {
+                        const newS = (currentProduct.specifications || []).filter((_, idx) => idx !== i);
+                        setCurrentProduct({...currentProduct, specifications: newS});
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, specifications: [...(currentProduct.specifications || []), { label: "", value: "" }]});
+                }}>+ Add Specification</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Customer Q&A</h3>
+                {(currentProduct.questions || []).map((q, i) => (
+                  <div key={i} className="space-y-2 border p-3 rounded-lg">
+                    <Input placeholder="Question" value={q.question} onChange={(e) => {
+                      const newQ = [...(currentProduct.questions || [])];
+                      newQ[i] = { ...newQ[i], question: e.target.value };
+                      setCurrentProduct({...currentProduct, questions: newQ});
+                    }} />
+                    <div className="flex gap-2">
+                      <Textarea placeholder="Answer" rows={2} value={q.answer} onChange={(e) => {
+                        const newQ = [...(currentProduct.questions || [])];
+                        newQ[i] = { ...newQ[i], answer: e.target.value };
+                        setCurrentProduct({...currentProduct, questions: newQ});
+                      }} />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => {
+                        const newQ = (currentProduct.questions || []).filter((_, idx) => idx !== i);
+                        setCurrentProduct({...currentProduct, questions: newQ});
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, questions: [...(currentProduct.questions || []), { question: "", answer: "" }]});
+                }}>+ Add Q&A</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Bank Offers</h3>
+                {(currentProduct.bankOffers || []).map((offer, i) => (
+                  <div key={i} className="flex gap-2 text-sm">
+                    <Input value={offer} onChange={(e) => {
+                      const newOffers = [...(currentProduct.bankOffers || [])];
+                      newOffers[i] = e.target.value;
+                      setCurrentProduct({...currentProduct, bankOffers: newOffers});
+                    }} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                      const newOffers = (currentProduct.bankOffers || []).filter((_, idx) => idx !== i);
+                      setCurrentProduct({...currentProduct, bankOffers: newOffers});
+                    }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, bankOffers: [...(currentProduct.bankOffers || []), ""]});
+                }}>+ Add Bank Offer</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">What's in the box</h3>
+                {(currentProduct.inTheBox || []).map((item, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={item} onChange={(e) => {
+                      const newBoxItems = [...(currentProduct.inTheBox || [])];
+                      newBoxItems[i] = e.target.value;
+                      setCurrentProduct({...currentProduct, inTheBox: newBoxItems});
+                    }} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                      const newBoxItems = (currentProduct.inTheBox || []).filter((_, idx) => idx !== i);
+                      setCurrentProduct({...currentProduct, inTheBox: newBoxItems});
+                    }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, inTheBox: [...(currentProduct.inTheBox || []), ""]});
+                }}>+ Add Box Item</Button>
+              </div>
+
+              <div className="space-y-2 col-span-2 border-t pt-4">
                 <Label htmlFor="description">Description</Label>
                 <Textarea id="description" rows={4} value={currentProduct.description || ""} onChange={(e) => setCurrentProduct({...currentProduct, description: e.target.value})} />
               </div>
@@ -396,7 +524,7 @@ const AdminProducts = () => {
                   <Checkbox 
                     id="edit-isFeatured" 
                     checked={currentProduct.isFeatured || false}
-                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isFeatured: checked})}
+                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isFeatured: Boolean(checked)})}
                   />
                   <Label htmlFor="edit-isFeatured" className="text-sm font-medium cursor-pointer">Featured</Label>
                 </div>
@@ -404,7 +532,7 @@ const AdminProducts = () => {
                   <Checkbox 
                     id="edit-isNewArrival" 
                     checked={currentProduct.isNewArrival || false}
-                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isNewArrival: checked})}
+                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isNewArrival: Boolean(checked)})}
                   />
                   <Label htmlFor="edit-isNewArrival" className="text-sm font-medium cursor-pointer">New Arrival</Label>
                 </div>
@@ -412,13 +540,127 @@ const AdminProducts = () => {
                   <Checkbox 
                     id="edit-isTrending" 
                     checked={currentProduct.isTrending || false}
-                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isTrending: checked})}
+                    onCheckedChange={(checked) => setCurrentProduct({...currentProduct, isTrending: Boolean(checked)})}
                   />
                   <Label htmlFor="edit-isTrending" className="text-sm font-medium cursor-pointer text-destructive">🔥 Trending</Label>
                 </div>
               </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Product Highlights</h3>
+                {(currentProduct.highlights || []).map((h, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={h} onChange={(e) => {
+                      const newH = [...(currentProduct.highlights || [])];
+                      newH[i] = e.target.value;
+                      setCurrentProduct({...currentProduct, highlights: newH});
+                    }} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                      const newH = (currentProduct.highlights || []).filter((_, idx) => idx !== i);
+                      setCurrentProduct({...currentProduct, highlights: newH});
+                    }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, highlights: [...(currentProduct.highlights || []), ""]});
+                }}>+ Add Highlight</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Specifications</h3>
+                {(currentProduct.specifications || []).map((s, i) => (
+                  <div key={i} className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Label (e.g. Color)" value={s.label} onChange={(e) => {
+                      const newS = [...(currentProduct.specifications || [])];
+                      newS[i] = { ...newS[i], label: e.target.value };
+                      setCurrentProduct({...currentProduct, specifications: newS});
+                    }} />
+                    <div className="flex gap-2">
+                      <Input placeholder="Value (e.g. Red)" value={s.value} onChange={(e) => {
+                        const newS = [...(currentProduct.specifications || [])];
+                        newS[i] = { ...newS[i], value: e.target.value };
+                        setCurrentProduct({...currentProduct, specifications: newS});
+                      }} />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => {
+                        const newS = (currentProduct.specifications || []).filter((_, idx) => idx !== i);
+                        setCurrentProduct({...currentProduct, specifications: newS});
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, specifications: [...(currentProduct.specifications || []), { label: "", value: "" }]});
+                }}>+ Add Specification</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Customer Q&A</h3>
+                {(currentProduct.questions || []).map((q, i) => (
+                  <div key={i} className="space-y-2 border p-3 rounded-lg">
+                    <Input placeholder="Question" value={q.question} onChange={(e) => {
+                      const newQ = [...(currentProduct.questions || [])];
+                      newQ[i] = { ...newQ[i], question: e.target.value };
+                      setCurrentProduct({...currentProduct, questions: newQ});
+                    }} />
+                    <div className="flex gap-2">
+                      <Textarea placeholder="Answer" rows={2} value={q.answer} onChange={(e) => {
+                        const newQ = [...(currentProduct.questions || [])];
+                        newQ[i] = { ...newQ[i], answer: e.target.value };
+                        setCurrentProduct({...currentProduct, questions: newQ});
+                      }} />
+                      <Button type="button" variant="ghost" size="icon" onClick={() => {
+                        const newQ = (currentProduct.questions || []).filter((_, idx) => idx !== i);
+                        setCurrentProduct({...currentProduct, questions: newQ});
+                      }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, questions: [...(currentProduct.questions || []), { question: "", answer: "" }]});
+                }}>+ Add Q&A</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">Bank Offers</h3>
+                {(currentProduct.bankOffers || []).map((offer, i) => (
+                  <div key={i} className="flex gap-2 text-sm">
+                    <Input value={offer} onChange={(e) => {
+                      const newOffers = [...(currentProduct.bankOffers || [])];
+                      newOffers[i] = e.target.value;
+                      setCurrentProduct({...currentProduct, bankOffers: newOffers});
+                    }} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                      const newOffers = (currentProduct.bankOffers || []).filter((_, idx) => idx !== i);
+                      setCurrentProduct({...currentProduct, bankOffers: newOffers});
+                    }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, bankOffers: [...(currentProduct.bankOffers || []), ""]});
+                }}>+ Add Bank Offer</Button>
+              </div>
+
+              <div className="space-y-4 col-span-2 border-t pt-4">
+                <h3 className="font-semibold text-sm">What's in the box</h3>
+                {(currentProduct.inTheBox || []).map((item, i) => (
+                  <div key={i} className="flex gap-2">
+                    <Input value={item} onChange={(e) => {
+                      const newBoxItems = [...(currentProduct.inTheBox || [])];
+                      newBoxItems[i] = e.target.value;
+                      setCurrentProduct({...currentProduct, inTheBox: newBoxItems});
+                    }} />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => {
+                      const newBoxItems = (currentProduct.inTheBox || []).filter((_, idx) => idx !== i);
+                      setCurrentProduct({...currentProduct, inTheBox: newBoxItems});
+                    }}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  setCurrentProduct({...currentProduct, inTheBox: [...(currentProduct.inTheBox || []), ""]});
+                }}>+ Add Box Item</Button>
+              </div>
+
+              <div className="space-y-2 col-span-2 border-t pt-4">
                 <Label htmlFor="edit-description">Description</Label>
                 <Textarea id="edit-description" rows={4} value={currentProduct.description || ""} onChange={(e) => setCurrentProduct({...currentProduct, description: e.target.value})} />
               </div>

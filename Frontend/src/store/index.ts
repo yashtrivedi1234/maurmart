@@ -9,6 +9,7 @@ import { brandApi } from "./api/brandApi";
 import { newsletterApi } from "./api/newsletterApi";
 import { contactApi } from "./api/contactApi";
 import { faqApi } from "./api/faqApi";
+import { testimonialApi } from "./api/testimonialApi";
 import wishlistReducer from "./slices/wishlistSlice";
 
 export const store = configureStore({
@@ -23,6 +24,7 @@ export const store = configureStore({
     [newsletterApi.reducerPath]: newsletterApi.reducer,
     [contactApi.reducerPath]: contactApi.reducer,
     [faqApi.reducerPath]: faqApi.reducer,
+    [testimonialApi.reducerPath]: testimonialApi.reducer,
     wishlist: wishlistReducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -36,7 +38,8 @@ export const store = configureStore({
       brandApi.middleware,
       newsletterApi.middleware,
       contactApi.middleware,
-      faqApi.middleware
+      faqApi.middleware,
+      testimonialApi.middleware
     ),
 });
 

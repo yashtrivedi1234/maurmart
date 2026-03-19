@@ -1,6 +1,20 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { API_BASE_URL } from "@/lib/apiBase";
 
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: "user" | "admin";
+  isVerified: boolean;
+  profilePic?: string;
+  phone?: string;
+  address?: string;
+  city?: string;
+  pincode?: string;
+  createdAt: string;
+}
+
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: fetchBaseQuery({
@@ -53,7 +67,7 @@ export const authApi = createApi({
         body: { email },
       }),
     }),
-    getProfile: builder.query({
+    getProfile: builder.query<User, void>({
       query: () => {
         console.log("📥 Fetching profile...");
         return "/profile";
@@ -76,7 +90,7 @@ export const authApi = createApi({
       }),
       invalidatesTags: ["User"],
     }),
-    getAllUsers: builder.query({
+    getAllUsers: builder.query<User[], void>({
       query: () => "/admin/users",
       providesTags: ["User"],
     }),

@@ -1,6 +1,7 @@
 import { Order } from "../models/order.model.js";
 import Cart from "../models/cart.model.js";
 import User from "../models/user.model.js";
+import { Product } from "../models/product.model.js";
 import nodemailer from "nodemailer";
 
 // Singleton transporter instance - reuse across all requests
@@ -37,14 +38,19 @@ const sendEmailAsync = (mailOptions) => {
     
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
-        console.error("❌ Email Sending Error:", {
+        console.error("❌ Email Sending Error Details:", {
           message: error.message,
           code: error.code,
+          command: error.command,
           to: mailOptions.to,
           timestamp: new Date().toISOString()
         });
+        
+        if (error.code === 'EAUTH') {
+          console.error("💡 TIP: Check if EMAIL_USER and EMAIL_PASS are correct. If using Gmail, ensure you're using an App Password.");
+        }
       } else {
-        console.log("✅ Email sent successfully to", mailOptions.to, "- Response:", info.response);
+        console.log("✅ Email sent successfully to", mailOptions.to, "- ID:", info.messageId);
       }
     });
   } catch (err) {
@@ -126,16 +132,39 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: "No items in order" });
     }
 
+    // Check stock availability before creating order
+    for (const item of items) {
+      const product = await Product.findById(item.product);
+      if (!product) {
+        return res.status(404).json({ message: `Product ${item.product} not found` });
+      }
+      if (product.stock < item.quantity) {
+        return res.status(400).json({ 
+          message: `Insufficient stock for ${product.name}. Available: ${product.stock}` 
+        });
+      }
+    }
+
     const order = new Order({
       user: req.user.id,
       items,
       shippingAddress,
       paymentMethod,
       totalPrice,
-      paymentStatus: "Paid", // Simulating successful payment
+      paymentStatus: "Paid",
+      razorpay_payment_id: req.body.razorpay_payment_id,
     });
 
     const savedOrder = await order.save();
+
+    // Reduce stock for each product in the order
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.product,
+        { $inc: { stock: -item.quantity } },
+        { new: true }
+      );
+    }
 
     // Populate products for email details
     const populatedOrder = await Order.findById(savedOrder._id).populate("items.product");

@@ -59,6 +59,7 @@ import contactRoutes from "./routes/contact.Routes.js";
 import faqRoutes from "./routes/faq.Routes.js";
 import adminRoutes from "./routes/admin.Routes.js";
 import chatRoutes from "./routes/chat.Routes.js";
+import testimonialRoutes from "./routes/testimonial.Routes.js";
 
 /* =======================
    📁 Path Setup
@@ -249,3 +250,49 @@ mongoose
     console.error("❌ MongoDB Error:", err.message);
     process.exit(1);
   });
+<<<<<<< HEAD
+=======
+
+// Verify email configuration
+verifyEmailConfig();
+
+// Setup routes
+const setupRoutes = () => {
+  app.use("/api/auth", authRoutes);
+  app.use("/api/admin", adminRoutes);
+  app.use("/api/products", productRoutes);
+  app.use("/api/newsletter", newsletterRoutes);
+  app.use("/api/heroes", heroRoutes);
+  app.use("/api/cart", cartRoutes);
+  app.use("/api/orders", orderRoutes);
+  app.use("/api/payment", paymentRoutes);
+  app.use("/api/brands", brandRoutes);
+  app.use("/api/contacts", contactRoutes);
+  app.use("/api/faqs", faqRoutes);
+  app.use("/api/chat", chatRoutes);
+  app.use("/api/testimonials", testimonialRoutes);
+
+  // Error handling middleware
+  app.use((err, req, res, next) => {
+    console.error("Global Error Handler:", err);
+    res.status(err.status || 500).json({
+      message: err.message || "Internal Server Error",
+      error: err
+    });
+  });
+};
+
+const startServer = () => {
+  setupRoutes();
+  app.listen(process.env.PORT || 5001, () => {
+    console.log(`Server running on port ${process.env.PORT || 5001} 🚀`);
+  });
+};
+
+// Handle graceful shutdown
+process.on("SIGINT", () => {
+  mongoose.connection.close();
+  console.log("Server gracefully terminated");
+  process.exit(0);
+});
+>>>>>>> 8c10fd2 (something)

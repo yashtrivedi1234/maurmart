@@ -13,100 +13,29 @@ import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import ProductCard from "@/components/shop/ProductCard";
-import { useGetProductByIdQuery, useGetProductsQuery, Product } from "@/store/api/productApi";
+import { useGetProductByIdQuery, useGetProductsQuery, Product, useAddReviewMutation, useCheckCanReviewQuery } from "@/store/api/productApi";
+import { MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { useAddToCartMutation } from "@/store/api/cartApi";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 
-/* ─── Mock data for the extra sections (Visual placeholders as requested by UI) ─── */
-const HIGHLIGHTS = [
-  "Premium quality materials with 1-year warranty",
-  "Energy-efficient design, certified eco-friendly",
-  "Compatible with all major platforms",
-  "24/7 customer support included",
-];
-
-const REVIEW_BREAKDOWN = [
-  { stars: 5, count: 145 },
-  { stars: 4, count: 32 },
-  { stars: 3, count: 12 },
-  { stars: 2, count: 5 },
-  { stars: 1, count: 3 },
-];
-
-const SPECS = [
-  { label: "Brand", value: "Premium Brand" },
-  { label: "Model", value: "Professional Series" },
-  { label: "Color", value: "Available in multiple colors" },
-  { label: "Weight", value: "2.5 kg" },
-  { label: "Dimensions", value: "30 x 20 x 10 cm" },
-  { label: "Warranty", value: "1 Year Manufacturer Warranty" },
-  { label: "Certification", value: "ISO 9001 & CE Certified" },
-  { label: "Material", value: "Premium Stainless Steel" },
-];
-
-const REVIEWS = [
-  {
-    id: 1,
-    name: "Rajesh Kumar",
-    rating: 5,
-    title: "Excellent product, highly recommended!",
-    body: "Great quality and fast delivery. The product exceeded my expectations. Definitely worth the price.",
-    verified: true,
-    date: "2 weeks ago",
-    helpful: 42,
-    notHelpful: 2,
-  },
-  {
-    id: 2,
-    name: "Priya Singh",
-    rating: 4,
-    title: "Good value for money",
-    body: "Really happy with my purchase. Minor issue with packaging but the product itself is excellent.",
-    verified: true,
-    date: "1 month ago",
-    helpful: 28,
-    notHelpful: 1,
-  },
-  {
-    id: 3,
-    name: "Amit Patel",
-    rating: 5,
-    title: "Perfect! Exactly as described",
-    body: "This product is perfect. The quality is exceptional and it arrived on time.",
-    verified: true,
-    date: "1 month ago",
-    helpful: 35,
-    notHelpful: 0,
-  },
-];
-
-const QA = [
-  {
-    q: "Is this product available in different colors?",
-    a: "Yes, this product is available in multiple colors. Please check the color options in the product selector above.",
-  },
-  {
-    q: "What is the warranty period?",
-    a: "This product comes with a 1-year manufacturer warranty covering all manufacturing defects.",
-  },
-  {
-    q: "Do you provide free shipping?",
-    a: "Yes, we provide free shipping on all orders above ₹500. For orders below that, shipping charges will apply.",
-  },
-];
+// Mock constants removed to favor dynamic data from the database.
 
 /* ─── Sub-components ─── */
 
-const StarRow = ({ rating, size = "h-4 w-4" }: { rating: number; size?: string }) =>
-  [1, 2, 3, 4, 5].map((s) => (
-    <Star
-      key={s}
-      className={`${size} ${s <= Math.round(rating)
-          ? "text-yellow-400 fill-yellow-400"
-          : "text-muted-foreground/30"
-        }`}
-    />
-  ));
+const StarRow = ({ rating, size = "h-4 w-4" }: { rating: number; size?: string }) => (
+  <>
+    {[1, 2, 3, 4, 5].map((s) => (
+      <Star
+        key={s}
+        className={`${size} ${s <= Math.round(rating || 0)
+            ? "text-yellow-400 fill-yellow-400"
+            : "text-muted-foreground/30"
+          }`}
+      />
+    ))}
+  </>
+);
 
 const SectionToggle = ({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
   const [open, setOpen] = useState(defaultOpen);
@@ -132,8 +61,22 @@ const ProductDetails = () => {
   const [wishlisted, setWishlisted] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const { data: product, isLoading } = useGetProductByIdQuery(id);
-  const { data: allProducts = [] } = useGetProductsQuery({});
+  const { data: allProducts } = useGetProductsQuery(undefined);
+  const products = Array.isArray(allProducts) ? allProducts : [];
+  
   const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
+  const [addReview, { isLoading: isSubmittingReview }] = useAddReviewMutation();
+  const { data: canReviewData } = useCheckCanReviewQuery(id || "", { 
+    skip: !localStorage.getItem("token") || !id 
+  });
+  
+  const [newRating, setNewRating] = useState(5);
+  const [newComment, setNewComment] = useState("");
+  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+
+  const canReview = canReviewData?.canReview || false;
+
+  console.log("ProductDetails State:", { id, product, isLoading, productsCount: products.length });
 
   if (isLoading) {
     return (
@@ -155,12 +98,12 @@ const ProductDetails = () => {
     );
   }
 
-  const discount = product.originalPrice && product.originalPrice > product.price
+  const discount = (product.originalPrice && product.price && product.originalPrice > product.price)
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
-  const related = (allProducts as Product[])
-    .filter((p) => p.category === product.category && p._id !== product._id)
+  const related = products
+    .filter((p) => p && p.category === product.category && p._id !== product._id)
     .slice(0, 4);
 
   const handleAddToCart = async () => {
@@ -181,10 +124,33 @@ const ProductDetails = () => {
     }
   };
 
-  const totalReviews = REVIEW_BREAKDOWN.reduce((s, r) => s + r.count, 0);
-  const avgRating = (
-    REVIEW_BREAKDOWN.reduce((s, r) => s + r.stars * r.count, 0) / totalReviews
-  ).toFixed(1);
+  const handleSubmitReview = async () => {
+    if (!newComment.trim()) {
+      toast.error("Please enter a comment");
+      return;
+    }
+    try {
+      await addReview({ 
+        id: product._id, 
+        reviewData: { rating: newRating, comment: newComment } 
+      }).unwrap();
+      toast.success("Review submitted successfully!");
+      setNewComment("");
+      setIsReviewFormOpen(false);
+    } catch (err: unknown) {
+      const error = err as { data?: { message?: string } };
+      toast.error(error?.data?.message || "Failed to submit review");
+    }
+  };
+
+  const totalReviews = product.numReviews || 0;
+  const avgRating = typeof product.rating === 'number' ? product.rating.toFixed(1) : "0.0";
+
+  const breakdown = [5, 4, 3, 2, 1].map(stars => {
+    const count = product.reviews?.filter(r => Math.round(r.rating || 0) === stars)?.length || 0;
+    const pct = totalReviews > 0 ? Math.round((count / totalReviews) * 100) : 0;
+    return { stars, count, pct };
+  });
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -316,18 +282,16 @@ const ProductDetails = () => {
             </div>
 
             {/* Bank offer strip */}
-            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
-              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                <Zap className="h-4 w-4 text-primary" /> Bank Offers
-              </p>
-              {[
-                "10% off on HDFC Bank Credit Cards. T&C apply.",
-                "5% Cashback on Flipkart Axis Bank Card.",
-                "No cost EMI starting ₹999/month",
-              ].map((offer, i) => (
-                <p key={i} className="text-xs text-muted-foreground pl-6">• {offer}</p>
-              ))}
-            </div>
+            {product.bankOffers && product.bankOffers.length > 0 && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-2">
+                <p className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-primary" /> Bank Offers
+                </p>
+                {product.bankOffers.map((offer, i) => (
+                  <p key={i} className="text-xs text-muted-foreground pl-6">• {offer}</p>
+                ))}
+              </div>
+            )}
 
             {/* Description */}
             <div>
@@ -338,17 +302,19 @@ const ProductDetails = () => {
             </div>
 
             {/* Highlights */}
-            <div>
-              <h3 className="font-semibold text-foreground mb-3">Key Highlights</h3>
-              <ul className="space-y-2">
-                {HIGHLIGHTS.map((h, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                    <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
-                    {h}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {product.highlights && product.highlights.length > 0 && (
+              <div>
+                <h3 className="font-semibold text-foreground mb-3">Key Highlights</h3>
+                <ul className="space-y-2">
+                  {product.highlights.map((h, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 shrink-0" />
+                      {h}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <Separator />
 
@@ -477,19 +443,21 @@ const ProductDetails = () => {
             </div>
 
             {/* Package contents */}
-            <div className="border border-border rounded-xl p-4">
-              <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
-                <Package className="h-4 w-4 text-primary" /> What's in the box
-              </p>
-              <ul className="text-xs text-muted-foreground space-y-1">
-                {["1× Main unit", "1× USB-C Cable", "1× User Manual", "1× Warranty Card"].map((item) => (
-                  <li key={item} className="flex items-center gap-2">
-                    <span className="h-1 w-1 rounded-full bg-muted-foreground inline-block" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            {product.inTheBox && product.inTheBox.length > 0 && (
+              <div className="border border-border rounded-xl p-4">
+                <p className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                  <Package className="h-4 w-4 text-primary" /> What's in the box
+                </p>
+                <ul className="text-xs text-muted-foreground space-y-1">
+                  {product.inTheBox.map((item) => (
+                    <li key={item} className="flex items-center gap-2">
+                      <span className="h-1 w-1 rounded-full bg-muted-foreground inline-block" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -497,30 +465,31 @@ const ProductDetails = () => {
       {/* ── Expandable content sections ── */}
       <section className="container mx-auto px-4 pb-10 space-y-4 max-w-4xl">
         {/* Specifications */}
-        <SectionToggle title="Product Specifications" defaultOpen={true}>
-          <div className="divide-y divide-border">
-            {SPECS.map(({ label, value }) => (
-              <div key={label} className="grid grid-cols-2 py-2.5 text-sm">
-                <span className="text-muted-foreground">{label}</span>
-                <span className="text-foreground font-medium">{value}</span>
-              </div>
-            ))}
-          </div>
-        </SectionToggle>
+        {product.specifications && product.specifications.length > 0 && (
+          <SectionToggle title="Product Specifications" defaultOpen={true}>
+            <div className="divide-y divide-border">
+              {product.specifications.map((spec, i) => (
+                <div key={i} className="grid grid-cols-2 py-2.5 text-sm">
+                  <span className="text-muted-foreground">{spec.label}</span>
+                  <span className="text-foreground font-medium">{spec.value}</span>
+                </div>
+              ))}
+            </div>
+          </SectionToggle>
+        )}
 
         {/* Reviews */}
-        <SectionToggle title={`Customer Reviews (${(product.reviews || 0).toLocaleString()})`} defaultOpen={true}>
+        <SectionToggle title={`Customer Reviews (${totalReviews.toLocaleString()})`} defaultOpen={true}>
           <div id="reviews" className="space-y-6">
             {/* Aggregate */}
             <div className="flex flex-col sm:flex-row gap-6 items-start">
               <div className="flex flex-col items-center min-w-[100px]">
                 <span className="text-5xl font-bold text-foreground">{avgRating}</span>
                 <div className="flex mt-1">{<StarRow rating={parseFloat(avgRating)} size="h-4 w-4" />}</div>
-                <span className="text-xs text-muted-foreground mt-1">{totalReviews.toLocaleString()} ratings</span>
+                <span className="text-xs text-muted-foreground mt-1">{totalReviews.toLocaleString()} reviews</span>
               </div>
               <div className="flex-1 space-y-1.5 w-full">
-                {REVIEW_BREAKDOWN.map(({ stars, count }) => {
-                  const pct = Math.round((count / totalReviews) * 100);
+                {breakdown.map(({ stars, count, pct }) => {
                   return (
                     <div key={stars} className="flex items-center gap-3 text-sm">
                       <span className="text-muted-foreground w-12 text-right shrink-0">{stars} star</span>
@@ -530,63 +499,121 @@ const ProductDetails = () => {
                   );
                 })}
               </div>
+              
+              {canReview && (
+                <div className="sm:border-l sm:pl-6 w-full sm:w-auto flex flex-col items-center justify-center">
+                  <p className="text-sm font-medium mb-3 text-center">Share your thoughts</p>
+                  <Button 
+                    onClick={() => setIsReviewFormOpen(true)}
+                    className="gap-2 shadow-lg shadow-primary/20"
+                  >
+                    <MessageSquare className="h-4 w-4" /> Write a Review
+                  </Button>
+                </div>
+              )}
             </div>
+
+            {isReviewFormOpen && (
+              <div className="bg-secondary/30 rounded-2xl p-6 space-y-4 animate-in fade-in slide-in-from-top-4 duration-300">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold">Write a Review</h4>
+                  <button onClick={() => setIsReviewFormOpen(false)} className="text-muted-foreground hover:text-foreground">
+                    <XCircle className="h-5 w-5" />
+                  </button>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Your Rating</p>
+                  <div className="flex gap-1">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <button 
+                        key={s} 
+                        onClick={() => setNewRating(s)}
+                        className="hover:scale-110 transition-transform"
+                      >
+                        <Star className={`h-6 w-6 ${s <= newRating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"}`} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Your Review</p>
+                  <Textarea 
+                    placeholder="What did you like or dislike? How was the quality?"
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    className="min-h-[100px] rounded-xl bg-background"
+                  />
+                </div>
+
+                <div className="flex justify-end gap-3">
+                  <Button variant="ghost" onClick={() => setIsReviewFormOpen(false)}>Cancel</Button>
+                  <Button 
+                    onClick={handleSubmitReview} 
+                    disabled={isSubmittingReview}
+                    className="px-8 shadow-md"
+                  >
+                    {isSubmittingReview ? "Submitting..." : "Submit Review"}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             <Separator />
 
             {/* Individual reviews */}
             <div className="space-y-6">
-              {REVIEWS.map((r) => (
-                <div key={r.id} className="space-y-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
-                      {r.name[0]}
-                    </div>
-                    <span className="font-medium text-foreground text-sm">{r.name}</span>
-                    {r.verified && (
+              {product.reviews && product.reviews.length > 0 ? (
+                product.reviews.map((r) => (
+                  <div key={r._id} className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                        {r.name[0]}
+                      </div>
+                      <span className="font-medium text-foreground text-sm">{r.name}</span>
                       <Badge variant="outline" className="text-green-600 border-green-200 text-xs">
                         ✓ Verified Purchase
                       </Badge>
-                    )}
-                    <span className="text-xs text-muted-foreground ml-auto">{r.date}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        {new Date(r.createdAt).toLocaleDateString("en-IN", { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                    </div>
+                    <div className="flex">{<StarRow rating={r.rating} size="h-4 w-4" />}</div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{r.comment}</p>
+                    <Separator />
                   </div>
-                  <div className="flex">{<StarRow rating={r.rating} size="h-4 w-4" />}</div>
-                  <p className="font-semibold text-foreground text-sm">{r.title}</p>
-                  <p className="text-sm text-muted-foreground leading-relaxed">{r.body}</p>
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span>Helpful?</span>
-                    <button className="flex items-center gap-1 hover:text-foreground transition-colors">
-                      <ThumbsUp className="h-3.5 w-3.5" /> {r.helpful}
-                    </button>
-                    <button className="flex items-center gap-1 hover:text-foreground transition-colors">
-                      <ThumbsDown className="h-3.5 w-3.5" /> {r.notHelpful}
-                    </button>
-                  </div>
-                  <Separator />
+                ))
+              ) : (
+                <div className="text-center py-10 bg-muted/20 rounded-2xl border border-dashed">
+                  <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-20" />
+                  <p className="text-muted-foreground italic text-sm">No reviews yet. Be the first to review!</p>
                 </div>
-              ))}
+              )}
             </div>
 
-            <Button variant="outline" className="w-full">View all {(product.reviews || 0).toLocaleString()} reviews</Button>
+            <Button variant="outline" className="w-full">View all {totalReviews.toLocaleString()} reviews</Button>
           </div>
         </SectionToggle>
 
         {/* Q&A */}
-        <SectionToggle title="Customer Questions & Answers">
-          <div className="space-y-4">
-            {QA.map(({ q, a }, i) => (
-              <div key={i} className="space-y-1">
-                <p className="text-sm font-semibold text-foreground flex gap-2">
-                  <span className="text-primary shrink-0">Q.</span>{q}
-                </p>
-                <p className="text-sm text-muted-foreground flex gap-2">
-                  <span className="text-green-600 shrink-0 font-semibold">A.</span>{a}
-                </p>
-                {i < QA.length - 1 && <Separator className="mt-3" />}
-              </div>
-            ))}
-          </div>
-        </SectionToggle>
+        {product.questions && product.questions.length > 0 && (
+          <SectionToggle title="Customer Questions & Answers">
+            <div className="space-y-4">
+              {product.questions.map((q, i, arr) => (
+                <div key={i} className="space-y-1">
+                  <p className="text-sm font-semibold text-foreground flex gap-2">
+                    <span className="text-primary shrink-0">Q.</span>{q.question}
+                  </p>
+                  <p className="text-sm text-muted-foreground flex gap-2">
+                    <span className="text-green-600 shrink-0 font-semibold">A.</span>{q.answer}
+                  </p>
+                  {i < arr.length - 1 && <Separator className="mt-3" />}
+                </div>
+              ))}
+            </div>
+          </SectionToggle>
+        )}
       </section>
 
       {/* ── Related Products ── */}

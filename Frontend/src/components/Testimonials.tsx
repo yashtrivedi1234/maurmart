@@ -1,3 +1,10 @@
+import { useGetTestimonialsQuery, Testimonial } from "@/store/api/testimonialApi";
+import { ThumbsUp, ThumbsDown, Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useMarkHelpfulMutation } from "@/store/api/testimonialApi";
+import { toast } from "sonner";
+
 const GoogleLogo = () => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">
     <path fill="#4285F4" d="M24 9.5c3.1 0 5.8 1.1 8 2.9l6-6C34.5 3.1 29.6 1 24 1 14.8 1 7 6.7 3.7 14.6l7 5.4C12.4 13.9 17.7 9.5 24 9.5z"/>
@@ -7,16 +14,145 @@ const GoogleLogo = () => (
   </svg>
 );
 
-const StarFilled = () => (
-  <svg viewBox="0 0 20 20" fill="#FBBF24" className="w-4 h-4" aria-hidden="true">
-    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-  </svg>
-);
+const TestimonialCard = ({ testimonial }: { testimonial: Testimonial }) => {
+  const [markHelpful, { isLoading }] = useMarkHelpfulMutation();
+
+  const handleHelpful = async (helpfulValue: boolean) => {
+    try {
+      await markHelpful({ id: testimonial._id, helpful: helpfulValue }).unwrap();
+      toast.success(helpfulValue ? "Marked as helpful" : "Marked as not helpful");
+    } catch (err) {
+      toast.error("Failed to mark helpful");
+    }
+  };
+
+  const renderStars = (rating: number) => {
+    return (
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`h-4 w-4 ${
+              star <= rating
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-muted-foreground/30"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  return (
+    <div
+      className="rounded-2xl border border-border bg-card p-6 space-y-4"
+      style={{
+        boxShadow:
+          "0 0 0 1px hsl(var(--border)), 0 4px 12px -2px hsl(var(--foreground) / 0.04)",
+      }}
+    >
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 flex-1">
+          {/* Profile Image */}
+          <a
+            href={testimonial.googleProfileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0"
+          >
+            <img
+              src={testimonial.profileImage}
+              alt={testimonial.name}
+              className="h-12 w-12 rounded-full object-cover border border-border hover:ring-2 ring-primary transition-all"
+            />
+          </a>
+
+          {/* Name & Google Badge */}
+          <div className="min-w-0">
+            <a
+              href={testimonial.googleProfileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-foreground hover:text-primary transition-colors truncate block"
+            >
+              {testimonial.name}
+            </a>
+            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+              <GoogleLogo />
+              <span className="text-xs text-muted-foreground">Google Review</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Verified Badge */}
+        {testimonial.verified && (
+          <div className="flex-shrink-0">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+              ✓ Verified
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Rating */}
+      <div className="flex items-center gap-3">
+        {renderStars(testimonial.rating)}
+        <span className="text-sm font-medium text-foreground">{testimonial.rating}.0</span>
+      </div>
+
+      {/* Review Title */}
+      <h3 className="font-semibold text-foreground text-sm leading-snug">
+        {testimonial.title}
+      </h3>
+
+      {/* Review Text */}
+      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+        {testimonial.review}
+      </p>
+
+      {/* Footer: Date & Helpful */}
+      <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        <span className="text-xs text-muted-foreground">
+          {new Date(testimonial.postedDate).toLocaleDateString("en-IN", {
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 gap-1 text-xs"
+            disabled={isLoading}
+            onClick={() => handleHelpful(true)}
+          >
+            <ThumbsUp className="h-3.5 w-3.5" />
+            <span>{testimonial.helpful}</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-7 px-2 gap-1 text-xs"
+            disabled={isLoading}
+            onClick={() => handleHelpful(false)}
+          >
+            <ThumbsDown className="h-3.5 w-3.5" />
+            <span>{testimonial.notHelpful}</span>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const Testimonials = () => {
+  const { data: testimonials = [], isLoading } = useGetTestimonialsQuery();
+
   return (
     <section className="py-20 relative overflow-hidden bg-background">
-
       {/* Dot-grid background */}
       <div
         className="absolute inset-0 pointer-events-none opacity-40"
@@ -38,9 +174,8 @@ const Testimonials = () => {
       />
 
       <div className="container mx-auto px-4 relative">
-
         {/* ── Header ── */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-12">
           <span
             className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase mb-4 px-3 py-1 rounded-full"
             style={{
@@ -69,42 +204,28 @@ const Testimonials = () => {
           </p>
         </div>
 
-       
-
-        {/* ── iframe wrapper ── */}
-        <div
-          className="relative rounded-3xl overflow-hidden"
-          style={{
-            boxShadow:
-              "0 0 0 1px hsl(var(--border)), 0 24px 64px -12px hsl(var(--foreground) / 0.08)",
-          }}
-        >
-          {/* Google-color top accent bar */}
-          <div
-            className="h-[3px] w-full"
-            style={{
-              background: "linear-gradient(90deg, #4285F4 25%, #34A853 50%, #FBBC05 75%, #EA4335 100%)",
-            }}
-          />
-
-          <iframe
-            src="https://widgets.sociablekit.com/google-reviews/iframe/25664316"
-            frameBorder="0"
-            width="100%"
-            height="300px"
-            title="MaurMart Google Reviews"
-            loading="lazy"
-            className="block bg-card"
-          />
-
-          {/* Fade out bottom */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-16 pointer-events-none"
-            style={{
-              background: "linear-gradient(to top, hsl(var(--background)) 20%, transparent)",
-            }}
-          />
-        </div>
+        {/* ── Testimonials Grid ── */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map((n) => (
+              <div key={n} className="space-y-4">
+                <Skeleton className="h-32 w-full rounded-2xl" />
+              </div>
+            ))}
+          </div>
+        ) : testimonials.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {testimonials.map((testimonial) => (
+              <TestimonialCard key={testimonial._id} testimonial={testimonial} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-sm">
+              No testimonials yet. Check back soon!
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

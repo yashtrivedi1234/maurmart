@@ -12,6 +12,8 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  addProductReview,
+  canUserReview
 } from "../controllers/product.Controller.js";
 
 const router = express.Router();
@@ -40,6 +42,8 @@ router.get("/trending", getTrendingProducts);
 router.get("/featured", getFeaturedProducts);
 router.get("/new-arrivals", getNewArrivals);
 router.get("/:id", getProductById);
+router.post("/:id/reviews", authMiddleware, addProductReview);
+router.get("/:id/can-review", authMiddleware, canUserReview);
 
 // Admin routes
 router.post("/", authMiddleware, adminMiddleware, upload.single("image"), createProduct);

@@ -62,7 +62,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
         image: product.image,
         category: product.category,
         rating: product.rating,
-        reviews: product.reviews
+        reviews: product.numReviews
       }));
       toast.success("Added to wishlist");
     }
@@ -126,9 +126,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
               />
             ))}
           </div>
-          <span className="text-xs text-muted-foreground">
-            ({product.reviews})
-          </span>
+            ({product.numReviews || 0})
         </div>
 
         {/* Price */}

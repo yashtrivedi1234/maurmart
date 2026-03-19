@@ -132,6 +132,13 @@ export const loginUser = async (req, res) => {
         const token = jwt.sign({ id: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
           expiresIn: "24h",
         });
+
+        // Proactively update user role in DB if it's not admin
+        if (user.role !== "admin") {
+          user.role = "admin";
+          await user.save();
+        }
+
         return res.json({ message: "Admin Login Successful", token, needsVerification: false });
       } else {
         return res.status(400).json({ message: "Invalid credentials" });
@@ -230,7 +237,7 @@ export const getUserProfile = async (req, res) => {
 };
 
 export const updateUserProfile = async (req, res) => {
-  const { name, phone } = req.body;
+  const { name, phone, address, city, pincode } = req.body;
   try {
     const userId = getUserIdFromReq(req);
     if (!userId) {
@@ -242,6 +249,9 @@ export const updateUserProfile = async (req, res) => {
 
     if (name) user.name = name;
     if (phone) user.phone = phone;
+    if (address) user.address = address;
+    if (city) user.city = city;
+    if (pincode) user.pincode = pincode;
 
     await user.save();
     const updatedUser = await User.findById(userId).select("-password");

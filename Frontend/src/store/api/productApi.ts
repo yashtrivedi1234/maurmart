@@ -1,6 +1,15 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { API_BASE_URL } from "@/lib/apiBase";
 
+export interface ProductReview {
+  _id: string;
+  user: string;
+  name: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+}
+
 export interface Product {
   _id: string;
   name: string;
@@ -11,10 +20,16 @@ export interface Product {
   image: string;
   stock: number;
   rating: number;
-  reviews: number;
-  isFeatured: boolean;
-  isNewArrival: boolean;
-  isTrending: boolean;
+  numReviews: number;
+  reviews: ProductReview[];
+  isFeatured?: boolean;
+  isNewArrival?: boolean;
+  isTrending?: boolean;
+  highlights?: string[];
+  specifications?: { label: string; value: string }[];
+  questions?: { question: string; answer: string }[];
+  inTheBox?: string[];
+  bankOffers?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -78,6 +93,17 @@ export const productApi = createApi({
       }),
       invalidatesTags: ["Product"],
     }),
+    addReview: builder.mutation({
+      query: ({ id, reviewData }) => ({
+        url: `/${id}/reviews`,
+        method: "POST",
+        body: reviewData,
+      }),
+      invalidatesTags: (result, error, { id }) => [{ type: "Product", id }],
+    }),
+    checkCanReview: builder.query<{ canReview: boolean }, string>({
+      query: (id) => `/${id}/can-review`,
+    }),
   }),
 });
 
@@ -88,5 +114,7 @@ export const {
   useUpdateProductMutation,
   useDeleteProductMutation,
   useGetTrendingProductsQuery,
-  useUpdateProductStatusMutation
+  useUpdateProductStatusMutation,
+  useAddReviewMutation,
+  useCheckCanReviewQuery
 } = productApi;

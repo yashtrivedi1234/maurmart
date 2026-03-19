@@ -1,4 +1,5 @@
 import { Product } from "../models/product.model.js";
+import { Order } from "../models/order.model.js";
 import mongoose from "mongoose";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
@@ -134,9 +135,13 @@ export const createProduct = async (req, res) => {
       rating,
       reviews,
       stock,
-      isFeatured,
       isNewArrival,
       isTrending,
+      highlights,
+      specifications,
+      questions,
+      bankOffers,
+      inTheBox,
     } = req.body;
 
     if (!name || !price || !category) {
@@ -173,6 +178,11 @@ export const createProduct = async (req, res) => {
       isFeatured: toBoolean(isFeatured),
       isNewArrival: toBoolean(isNewArrival),
       isTrending: toBoolean(isTrending),
+      highlights: highlights ? JSON.parse(highlights) : [],
+      specifications: specifications ? JSON.parse(specifications) : [],
+      questions: questions ? JSON.parse(questions) : [],
+      bankOffers: bankOffers ? JSON.parse(bankOffers) : [],
+      inTheBox: inTheBox ? JSON.parse(inTheBox) : [],
     });
 
     const createdProduct = await product.save();
@@ -249,6 +259,21 @@ export const updateProduct = async (req, res) => {
     if (req.body.isTrending !== undefined)
       product.isTrending = toBoolean(req.body.isTrending);
 
+    if (req.body.highlights !== undefined)
+      product.highlights = JSON.parse(req.body.highlights);
+
+    if (req.body.specifications !== undefined)
+      product.specifications = JSON.parse(req.body.specifications);
+
+    if (req.body.questions !== undefined)
+      product.questions = JSON.parse(req.body.questions);
+    
+    if (req.body.bankOffers !== undefined)
+      product.bankOffers = JSON.parse(req.body.bankOffers);
+    
+    if (req.body.inTheBox !== undefined)
+      product.inTheBox = JSON.parse(req.body.inTheBox);
+
     const updatedProduct = await product.save();
 
     res.status(200).json(updatedProduct);
@@ -287,5 +312,74 @@ export const deleteProduct = async (req, res) => {
       message: "Failed to delete product",
       error: error.message,
     });
+  }
+};
+
+/* ----------------------------- CHECK IF USER CAN REVIEW ----------------------------- */
+export const canUserReview = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const userId = req.user.id;
+
+    const hasPurchased = await Order.exists({
+      user: userId,
+      "items.product": productId,
+      paymentStatus: "Paid",
+    });
+
+    res.status(200).json({ canReview: !!hasPurchased });
+  } catch (error) {
+    res.status(500).json({ message: "Error checking review status", error: error.message });
+  }
+};
+
+/* ----------------------------- ADD PRODUCT REVIEW ----------------------------- */
+export const addProductReview = async (req, res) => {
+  try {
+    const { id: productId } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user.id;
+
+    // 1. Check if user already reviewed
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ message: "Product not found" });
+
+    const alreadyReviewed = product.reviews.find(
+      (r) => r.user.toString() === userId.toString()
+    );
+
+    if (alreadyReviewed) {
+      return res.status(400).json({ message: "You have already reviewed this product" });
+    }
+
+    // 2. Check if user purchased this product
+    const hasPurchased = await Order.exists({
+      user: userId,
+      "items.product": productId,
+      paymentStatus: "Paid",
+    });
+
+    if (!hasPurchased) {
+      return res.status(403).json({ message: "Only verified buyers can review products" });
+    }
+
+    // 3. Add review
+    const review = {
+      name: req.user.name,
+      rating: Number(rating),
+      comment,
+      user: userId,
+    };
+
+    product.reviews.push(review);
+    product.numReviews = product.reviews.length;
+    product.rating =
+      product.reviews.reduce((acc, item) => item.rating + acc, 0) /
+      product.reviews.length;
+
+    await product.save();
+    res.status(201).json({ message: "Review added successfully", product });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add review", error: error.message });
   }
 };

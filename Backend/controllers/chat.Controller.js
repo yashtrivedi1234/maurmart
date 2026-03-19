@@ -1,5 +1,5 @@
 import axios from "axios";
-import { WEBSITE_CONTEXT } from "../config/websiteContext.js";
+import { getDynamicWebsiteContext, getProductRecommendations } from "./chatContext.Controller.js";
 
 const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -24,9 +24,31 @@ export const chat = async (req, res) => {
       });
     }
 
+    // Get dynamic website context (real-time data from database)
+    const systemContext = await getDynamicWebsiteContext();
+
+    // Check if user is asking for product recommendations
+    const searchKeywords = ["recommend", "find", "search", "products", "looking for", "want", "need", "best", "cheap", "affordable"];
+    const isProductQuery = searchKeywords.some((keyword) =>
+      message.toLowerCase().includes(keyword)
+    );
+
+    let productInfo = "";
+    if (isProductQuery) {
+      const recommendations = await getProductRecommendations(message);
+      if (recommendations.length > 0) {
+        productInfo = `\n\nRelevant Products Found:\n${recommendations
+          .map(
+            (p) =>
+              `- ${p.name} | ₹${p.price}${p.originalPrice ? ` (was ₹${p.originalPrice})` : ""} | Rating: ${p.rating}⭐ | Stock: ${p.stock > 0 ? "Available" : "Out of Stock"}`
+          )
+          .join("\n")}`;
+      }
+    }
+
     const systemMessage = {
       role: "system",
-      content: WEBSITE_CONTEXT,
+      content: systemContext,
     };
 
     const historyMessages = conversationHistory.slice(-10).map((msg) => ({
@@ -39,7 +61,7 @@ export const chat = async (req, res) => {
       ...historyMessages,
       {
         role: "user",
-        content: message.trim(),
+        content: productInfo ? `${message.trim()}\n${productInfo}` : message.trim(),
       },
     ];
 

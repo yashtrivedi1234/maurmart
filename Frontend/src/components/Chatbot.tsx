@@ -12,8 +12,12 @@ import {
   User,
   Loader2,
   Minimize2,
+  Maximize2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/apiBase";
+import { toast } from "sonner";
 
 interface Message {
   id: string;
@@ -30,15 +34,25 @@ const Chatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Hello! I'm your MaurMart assistant. I can help you with products, delivery, offers, and contact info. What would you like to know?",
+      text: "Hey! 👋 I'm your MaurMart shopping assistant. I can help you find products, track orders, answer questions about shipping, returns, and more. What can I help you with today?",
       sender: "bot",
       timestamp: new Date(),
     },
   ]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const quickSuggestions = [
+    { label: "🛍️ Find Products", value: "Can you recommend some popular products?" },
+    { label: "📦 Track Order", value: "How can I track my order?" },
+    { label: "🚚 Shipping Info", value: "Tell me about delivery and shipping" },
+    { label: "↩️ Returns", value: "What's your return policy?" },
+    { label: "💳 Payment", value: "What payment methods do you accept?" },
+    { label: "🏷️ Offers", value: "Do you have any current offers or discounts?" },
+  ];
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -53,6 +67,18 @@ const Chatbot = () => {
       inputRef.current?.focus();
     }
   }, [isOpen, isMinimized]);
+
+  const copyToClipboard = (text: string, messageId: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedMessageId(messageId);
+    toast.success("Copied to clipboard!");
+    setTimeout(() => setCopiedMessageId(null), 2000);
+  };
+
+  const handleQuickSuggestion = (suggestion: string) => {
+    setInput(suggestion);
+    inputRef.current?.focus();
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isTyping) return;
@@ -98,26 +124,21 @@ const Chatbot = () => {
         data?.response ??
         data?.content ??
         data?.message ??
-        "I'm having trouble responding right now. Please try again or contact us at info@maurmart.com.";
+        "Sorry, I couldn't process that. Please try again.";
 
-      const botResponse: Message = {
+      const botMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: botText,
         sender: "bot",
         timestamp: new Date(),
       };
 
-      if (!res.ok) {
-        const errMsg =
-          data?.message ?? data?.error ?? "Something went wrong. Please try again.";
-        botResponse.text = errMsg + " You can also reach us via the Contact page.";
-      }
-
-      setMessages((prev) => [...prev, botResponse]);
-    } catch (_error) {
+      setMessages((prev) => [...prev, botMessage]);
+    } catch (err) {
+      console.error("Chat error:", err);
       const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "I'm having trouble responding right now. Please try again or contact us at info@maurmart.com.",
+        id: (Date.now() + 2).toString(),
+        text: "Oops! Something went wrong. Please try again in a moment.",
         sender: "bot",
         timestamp: new Date(),
       };
@@ -127,152 +148,6 @@ const Chatbot = () => {
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSend();
-    }
-  };
-
-  if (location.pathname.startsWith("/admin")) {
-    return null;
-  }
-
-  if (isMobile) {
-    return (
-      <>
-        {!isOpen && (
-          <div className="fixed bottom-24 right-6 z-50">
-            <Button
-              onClick={() => {
-                setIsOpen(true);
-                setIsMinimized(false);
-              }}
-              aria-label="Open chat assistant"
-              className="w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300"
-            >
-              <MessageCircle className="w-6 h-6" />
-            </Button>
-          </div>
-        )}
-
-        {isOpen && (
-          <div
-            className="fixed bottom-28 right-6 z-50 w-[calc(100vw-2rem)] max-w-sm bg-card backdrop-blur-xl border-2 border-border rounded-xl shadow-2xl card-shadow overflow-hidden flex flex-col"
-            style={{
-              maxHeight: "calc(100vh - 8rem)",
-              height: isMinimized ? "auto" : "600px",
-            }}
-          >
-            <div className="hero-gradient p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center">
-                  <Bot className="w-6 h-6 text-primary-foreground" />
-                </div>
-                <div>
-                  <h3 className="text-primary-foreground font-black text-sm uppercase tracking-wider">
-                    MaurMart Help
-                  </h3>
-                  <p className="text-primary-foreground/80 text-xs">Ask me anything!</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  aria-label={isMinimized ? "Expand chat window" : "Minimize chat window"}
-                  className="h-8 w-8 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/20 focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
-                >
-                  <Minimize2 className="w-4 h-4 stroke-[2.75] text-primary-foreground drop-shadow-sm" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setIsOpen(false)}
-                  aria-label="Close chat window"
-                  className="h-8 w-8 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/20 focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
-                >
-                  <X className="w-4 h-4 stroke-[2.75] text-primary-foreground drop-shadow-sm" />
-                </Button>
-              </div>
-            </div>
-
-            {!isMinimized && (
-              <>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30">
-                  {messages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex gap-3 ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      {message.sender === "bot" && (
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-5 h-5 text-primary-foreground" />
-                        </div>
-                      )}
-                      <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                          message.sender === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card border-2 border-border text-foreground"
-                        }`}
-                      >
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                          {message.text}
-                        </p>
-                      </div>
-                      {message.sender === "user" && (
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <User className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {isTyping && (
-                    <div className="flex gap-3 justify-start">
-                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-5 h-5 text-primary-foreground" />
-                      </div>
-                      <div className="bg-card border-2 border-border rounded-2xl px-4 py-3">
-                        <Loader2 className="w-5 h-5 text-primary animate-spin" />
-                      </div>
-                    </div>
-                  )}
-                  <div ref={messagesEndRef} />
-                </div>
-
-                <div className="p-4 border-t-2 border-border bg-card">
-                  <div className="flex gap-2">
-                    <Input
-                      ref={inputRef}
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={handleKeyPress}
-                      placeholder="Type your message..."
-                      className="flex-1 border-2 border-input rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20"
-                      disabled={isTyping}
-                    />
-                    <Button
-                      onClick={handleSend}
-                      disabled={!input.trim() || isTyping}
-                      aria-label="Send message"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
-                    >
-                      <Send className="w-5 h-5" />
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Ask about delivery, products, offers, or contact
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-      </>
-    );
-  }
 
   return (
     <>
@@ -282,7 +157,7 @@ const Chatbot = () => {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
-            className="fixed bottom-24 right-6 sm:bottom-24 sm:right-6 z-50"
+            className="fixed bottom-24 right-6 z-50"
           >
             <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
               <Button
@@ -291,9 +166,9 @@ const Chatbot = () => {
                   setIsMinimized(false);
                 }}
                 aria-label="Open chat assistant"
-                className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300"
+                className="w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 hover:shadow-xl hover:shadow-primary/40 transition-all duration-300"
               >
-                <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7" />
+                <MessageCircle className="w-6 h-6" />
               </Button>
             </motion.div>
           </motion.div>
@@ -311,116 +186,93 @@ const Chatbot = () => {
               height: isMinimized ? "auto" : "600px",
             }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed bottom-28 right-6 sm:bottom-28 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-card backdrop-blur-xl border-2 border-border rounded-xl sm:rounded-2xl shadow-2xl card-shadow overflow-hidden flex flex-col"
+            className="fixed bottom-28 right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-sm bg-card backdrop-blur-xl border-2 border-border rounded-xl shadow-2xl overflow-hidden flex flex-col"
             style={{ maxHeight: "calc(100vh - 8rem)" }}
           >
-            <div className="hero-gradient p-4 flex items-center justify-between">
+            <div className="bg-primary p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-primary-foreground/20 rounded-full flex items-center justify-center">
                   <Bot className="w-6 h-6 text-primary-foreground" />
                 </div>
                 <div>
-                  <h3 className="text-primary-foreground font-black text-sm uppercase tracking-wider">
+                  <h3 className="text-primary-foreground font-bold text-sm">
                     MaurMart Help
                   </h3>
-                  <p className="text-primary-foreground/80 text-xs">Ask me anything!</p>
+                  <p className="text-primary-foreground/80 text-xs">Always online</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8 text-primary-foreground hover:bg-white/20"
                   onClick={() => setIsMinimized(!isMinimized)}
-                  aria-label={isMinimized ? "Expand chat window" : "Minimize chat window"}
-                  className="h-8 w-8 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/20 focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
                 >
-                  <Minimize2 className="w-4 h-4 stroke-[2.75] text-primary-foreground drop-shadow-sm" />
+                  {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
+                  className="h-8 w-8 text-primary-foreground hover:bg-white/20"
                   onClick={() => setIsOpen(false)}
-                  aria-label="Close chat window"
-                  className="h-8 w-8 text-primary-foreground hover:text-primary-foreground hover:bg-primary-foreground/20 focus-visible:ring-2 focus-visible:ring-primary-foreground/50"
                 >
-                  <X className="w-4 h-4 stroke-[2.75] text-primary-foreground drop-shadow-sm" />
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
             </div>
 
             {!isMinimized && (
               <>
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-background">
                   {messages.map((message) => (
-                    <motion.div
+                    <div
                       key={message.id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
                       className={`flex gap-3 ${message.sender === "user" ? "justify-end" : "justify-start"}`}
                     >
                       {message.sender === "bot" && (
-                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-5 h-5 text-primary-foreground" />
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <Bot className="w-5 h-5 text-primary" />
                         </div>
                       )}
                       <div
-                        className={`max-w-[75%] rounded-2xl px-4 py-3 ${
+                        className={`max-w-[80%] rounded-2xl px-4 py-3 text-sm ${
                           message.sender === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-card border-2 border-border text-foreground"
+                            ? "bg-primary text-primary-foreground rounded-tr-none"
+                            : "bg-muted text-foreground rounded-tl-none"
                         }`}
                       >
-                        <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                          {message.text}
-                        </p>
+                        {message.text}
                       </div>
-                      {message.sender === "user" && (
-                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                          <User className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                      )}
-                    </motion.div>
+                    </div>
                   ))}
                   {isTyping && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex gap-3 justify-start"
-                    >
-                      <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-5 h-5 text-primary-foreground" />
+                    <div className="flex gap-3 justify-start">
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-5 h-5 text-primary" />
                       </div>
-                      <div className="bg-card border-2 border-border rounded-2xl px-4 py-3">
+                      <div className="bg-muted rounded-2xl px-4 py-3">
                         <Loader2 className="w-5 h-5 text-primary animate-spin" />
                       </div>
-                    </motion.div>
+                    </div>
                   )}
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="p-4 border-t-2 border-border bg-card">
+                <div className="p-4 border-t border-border bg-card">
                   <div className="flex gap-2">
                     <Input
                       ref={inputRef}
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
-                      onKeyDown={handleKeyPress}
+                      onKeyDown={(e) => e.key === "Enter" && handleSend()}
                       placeholder="Type your message..."
-                      className="flex-1 border-2 border-input rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      className="flex-1"
                       disabled={isTyping}
                     />
-                    <Button
-                      onClick={handleSend}
-                      disabled={!input.trim() || isTyping}
-                      aria-label="Send message"
-                      className="bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all"
-                    >
-                      <Send className="w-5 h-5" />
+                    <Button onClick={handleSend} disabled={!input.trim() || isTyping}>
+                      {isTyping ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 text-center">
-                    Ask about delivery, products, offers, or contact
-                  </p>
                 </div>
               </>
             )}

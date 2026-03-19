@@ -16,7 +16,6 @@ const initializeRazorpay = () => {
 export const createRazorpayOrder = async (req, res) => {
   const { amount } = req.body;
   
-  // For testing, user requested ₹1. We'll use the amount from the request though for flexibility.
   // Razorpay expects amount in paise (1 INR = 100 paise)
   const options = {
     amount: Math.round(amount * 100),
