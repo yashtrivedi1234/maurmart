@@ -63,6 +63,7 @@ import faqRoutes from "./routes/faq.Routes.js";
 import adminRoutes from "./routes/admin.Routes.js";
 import chatRoutes from "./routes/chat.Routes.js";
 import testimonialRoutes from "./routes/testimonial.Routes.js";
+import recommendationRoutes from "./routes/recommendation.Routes.js";
 
 /* =======================
    📁 Path Setup
@@ -270,6 +271,7 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/faqs", faqRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
 /* =======================
    ❌ Error Handler

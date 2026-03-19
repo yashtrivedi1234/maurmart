@@ -1,10 +1,10 @@
-import { useGetProfileQuery, useUpdateProfileMutation, useUploadProfilePicMutation } from "@/store/api/authApi";
+import { useGetProfileQuery, useUpdateProfileMutation, useUploadProfilePicMutation, useChangePasswordMutation } from "@/store/api/authApi";
 import { useGetCartQuery } from "@/store/api/cartApi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Mail, Shield, LogOut, ArrowLeft, Edit2, Camera, Save, X, Phone, Loader2, ShoppingBag, ArrowRight } from "lucide-react";
+import { User, Mail, Shield, LogOut, ArrowLeft, Edit2, Camera, Save, X, Phone, Loader2, ShoppingBag, ArrowRight, Lock, Eye, EyeOff } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
@@ -23,10 +23,11 @@ const Profile = () => {
   // Always read fresh token from localStorage
   const token = localStorage.getItem("token");
   
-  const { data: user, isLoading, error } = useGetProfileQuery({}, { skip: !token });
-  const { data: cart } = useGetCartQuery({}, { skip: !token });
+  const { data: user, isLoading, error, refetch: refetchProfile } = useGetProfileQuery(undefined, { skip: !token });
+  const { data: cart } = useGetCartQuery(undefined, { skip: !token });
   const [updateProfile, { isLoading: isUpdating }] = useUpdateProfileMutation();
   const [uploadProfilePic, { isLoading: isUploadingPic }] = useUploadProfilePicMutation();
+  const [changePassword, { isLoading: isChangingPassword }] = useChangePasswordMutation();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -40,6 +41,17 @@ const Profile = () => {
   }, [user, token]);
   
   const [isEditing, setIsEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    oldPassword: false,
+    newPassword: false,
+    confirmPassword: false,
+  });
+  const [passwordFormData, setPasswordFormData] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -113,9 +125,67 @@ const Profile = () => {
 
     try {
       await uploadProfilePic(uploadFormData).unwrap();
-      toast.success("Profile picture updated!");
+      // Refetch profile data immediately to update UI with new picture
+      await refetchProfile();
+      toast.success("Profile picture updated successfully!");
     } catch (err: unknown) {
-      toast.error("Failed to upload profile picture");
+      const errorMsg = (err as { data?: { message?: string } })?.data?.message || "Failed to upload profile picture";
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // Validation
+    if (!passwordFormData.newPassword || !passwordFormData.confirmPassword) {
+      toast.error("New password and confirmation are required");
+      return;
+    }
+
+    if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+      toast.error("New passwords do not match");
+      return;
+    }
+
+    if (passwordFormData.newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    // Only check old password if user has set one before
+    // Google users on first password setup won't have old password
+    if (displayUser.googleId && !displayUser.hasPasswordSet && passwordFormData.oldPassword) {
+      // Google user setting password for first time - old password not needed
+      if (passwordFormData.oldPassword === passwordFormData.newPassword) {
+        toast.error("New password must be different");
+        return;
+      }
+    } else if (passwordFormData.oldPassword === passwordFormData.newPassword) {
+      toast.error("New password must be different from current password");
+      return;
+    }
+
+    try {
+      await changePassword({
+        oldPassword: passwordFormData.oldPassword,
+        newPassword: passwordFormData.newPassword,
+        confirmPassword: passwordFormData.confirmPassword,
+      }).unwrap();
+      
+      toast.success("Password changed successfully!");
+      setShowPasswordModal(false);
+      setPasswordFormData({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setShowPasswords({
+        oldPassword: false,
+        newPassword: false,
+        confirmPassword: false,
+      });
+    } catch (err: unknown) {
+      const errorMsg = (err as { data?: { message?: string } })?.data?.message || "Failed to change password";
+      toast.error(errorMsg);
     }
   };
 
@@ -314,7 +384,7 @@ const Profile = () => {
                   <p className="text-sm text-muted-foreground mb-4">
                     Keep your account safe by updating your password regularly and verifying your email.
                   </p>
-                  <Button variant="outline" className="w-full text-xs h-9">Change Password</Button>
+                  <Button variant="outline" className="w-full text-xs h-9" onClick={() => setShowPasswordModal(true)}>Change Password</Button>
                 </div>
 
                 <Button
@@ -392,6 +462,125 @@ const Profile = () => {
           </div>
         </div>
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full animate-in zoom-in duration-300">
+            <div className="p-6 border-b border-border flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-primary" />
+                <h3 className="font-display font-bold text-lg">Change Password</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordFormData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+                }}
+                className="text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Old Password - Optional for Google users first time setup */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <Label htmlFor="oldPassword" className="text-xs font-semibold text-muted-foreground uppercase">
+                    Current Password
+                  </Label>
+                  {displayUser.googleId && !displayUser.hasPasswordSet && (
+                    <span className="text-[10px] font-semibold text-orange-600 uppercase">Optional</span>
+                  )}
+                </div>
+                <div className="relative mt-2">
+                  <Input 
+                    id="oldPassword"
+                    type={showPasswords.oldPassword ? "text" : "password"}
+                    value={passwordFormData.oldPassword}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, oldPassword: e.target.value })}
+                    placeholder={displayUser.googleId && !displayUser.hasPasswordSet ? "Skip this for first time setup" : "Enter your current password"}
+                    className="h-10 rounded-lg pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, oldPassword: !showPasswords.oldPassword })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPasswords.oldPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* New Password */}
+              <div>
+                <Label htmlFor="newPassword" className="text-xs font-semibold text-muted-foreground uppercase">New Password</Label>
+                <div className="relative mt-2">
+                  <Input 
+                    id="newPassword"
+                    type={showPasswords.newPassword ? "text" : "password"}
+                    value={passwordFormData.newPassword}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
+                    placeholder="Enter new password"
+                    className="h-10 rounded-lg pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, newPassword: !showPasswords.newPassword })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPasswords.newPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div>
+                <Label htmlFor="confirmPassword" className="text-xs font-semibold text-muted-foreground uppercase">Confirm Password</Label>
+                <div className="relative mt-2">
+                  <Input 
+                    id="confirmPassword"
+                    type={showPasswords.confirmPassword ? "text" : "password"}
+                    value={passwordFormData.confirmPassword}
+                    onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                    className="h-10 rounded-lg pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords({ ...showPasswords, confirmPassword: !showPasswords.confirmPassword })}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPasswords.confirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-border flex gap-3 justify-end">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordFormData({ oldPassword: "", newPassword: "", confirmPassword: "" });
+                }}
+                disabled={isChangingPassword}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleChangePassword}
+                disabled={isChangingPassword}
+                className="gap-2"
+              >
+                {isChangingPassword && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isChangingPassword ? "Changing..." : "Change Password"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

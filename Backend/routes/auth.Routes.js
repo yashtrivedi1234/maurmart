@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getUserProfile, verifyOtp, resendOtp, updateUserProfile, uploadProfilePic, getAllUsers, forgotPassword, resetPassword, googleLogin } from "../controllers/auth.Controller.js";
+import { registerUser, loginUser, getUserProfile, verifyOtp, resendOtp, updateUserProfile, uploadProfilePic, getAllUsers, forgotPassword, resetPassword, googleLogin, changePassword } from "../controllers/auth.Controller.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.Middleware.js";
 import multer from "multer";
 import path from "path";
@@ -17,19 +17,8 @@ const getUserIdFromReq = (req) => {
   return req.user.id || req.user._id || req.user.userId || "unknown";
 };
 
-// Configure Multer for local storage
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, "..", "uploads");
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const userId = getUserIdFromReq(req);
-    console.log("Processing upload for user:", userId);
-    const uniqueName = `profile-${userId}-${Date.now()}${path.extname(file.originalname)}`;
-    cb(null, uniqueName);
-  },
-});
+// Use memory storage instead of disk - files stay in memory buffer
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage,
@@ -56,6 +45,7 @@ router.post("/google-login", googleLogin);
 router.get("/profile", authMiddleware, getUserProfile);
 router.put("/update-profile", authMiddleware, updateUserProfile);
 router.post("/upload-profile-pic", authMiddleware, upload.single("profilePic"), uploadProfilePic);
+router.post("/change-password", authMiddleware, changePassword);
 
 // Admin routes
 router.get("/admin/users", authMiddleware, adminMiddleware, getAllUsers);

@@ -18,6 +18,15 @@ import { MessageSquare } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddToCartMutation } from "@/store/api/cartApi";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  useGetSimilarProductsQuery,
+  useGetFrequentlyBoughtTogetherQuery,
+  useGetComboDealQuery,
+  useGetRecommendationSummaryQuery,
+} from "@/store/api/recommendationApi";
+import RecommendationCarousel from "@/components/RecommendationCarousel";
+import ComboDealCard from "@/components/ComboDealCard";
+import RecommendationGrid from "@/components/RecommendationGrid";
 
 // Mock constants removed to favor dynamic data from the database.
 
@@ -69,6 +78,14 @@ const ProductDetails = () => {
   const { data: canReviewData } = useCheckCanReviewQuery(id || "", { 
     skip: !localStorage.getItem("token") || !id 
   });
+  
+  // Recommendation hooks
+  const { data: similarProductsData, isLoading: isSimilarLoading } =
+    useGetSimilarProductsQuery(id || "", { skip: !id });
+  const { data: frequentlyBoughtData, isLoading: isFrequentlyBoughtLoading } =
+    useGetFrequentlyBoughtTogetherQuery(id || "", { skip: !id });
+  const { data: comboDealData, isLoading: isComboDealLoading } =
+    useGetComboDealQuery(id || "", { skip: !id });
   
   const [newRating, setNewRating] = useState(5);
   const [newComment, setNewComment] = useState("");
@@ -666,6 +683,45 @@ const ProductDetails = () => {
               <ProductCard key={p._id} product={p} />
             ))}
           </div>
+        </section>
+      )}
+
+      {/* ── Similar Products ── */}
+      {similarProductsData?.data && similarProductsData.data.length > 0 && (
+        <section className="container mx-auto px-4 pb-14">
+          <Separator className="mb-10" />
+          <RecommendationCarousel
+            title="Similar Products"
+            recommendations={similarProductsData.data}
+            isLoading={isSimilarLoading}
+          />
+        </section>
+      )}
+
+      {/* ── Frequently Bought Together ── */}
+      {frequentlyBoughtData?.data && frequentlyBoughtData.data.length > 0 && (
+        <section className="container mx-auto px-4 pb-14">
+          <Separator className="mb-10" />
+          <RecommendationCarousel
+            title="Frequently Bought Together"
+            recommendations={frequentlyBoughtData.data}
+            isLoading={isFrequentlyBoughtLoading}
+          />
+        </section>
+      )}
+
+      {/* ── Combo Deal ── */}
+      {comboDealData?.data?.products && comboDealData.data.products.length > 0 && (
+        <section className="container mx-auto px-4 pb-14">
+          <Separator className="mb-10" />
+          <ComboDealCard
+            products={comboDealData.data.products}
+            discount={comboDealData.data.discount}
+            discountType={comboDealData.data.discountType}
+            originalTotal={comboDealData.data.originalTotal}
+            discountedTotal={comboDealData.data.discountedTotal}
+            savings={comboDealData.data.savings}
+          />
         </section>
       )}
     </div>

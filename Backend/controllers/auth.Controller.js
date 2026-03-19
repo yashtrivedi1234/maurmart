@@ -2,7 +2,6 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
@@ -83,6 +82,7 @@ export const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       isVerified: false,
+      hasPasswordSet: true, // User registered with a password
     });
 
     res.status(201).json({ message: "User registered successfully. Please login to verify your account." });
@@ -262,7 +262,7 @@ export const updateUserProfile = async (req, res) => {
 };
 
 export const uploadProfilePic = async (req, res) => {
-  console.log("uploadProfilePic controller reached. File:", req.file?.filename);
+  console.log("uploadProfilePic controller reached. File:", req.file?.originalname);
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
@@ -277,15 +277,17 @@ export const uploadProfilePic = async (req, res) => {
     // Delete old profile pic from Cloudinary if it exists
     if (user.profilePic_public_id) {
       await deleteFromCloudinary(user.profilePic_public_id);
+      console.log("✅ Deleted old profile pic from Cloudinary");
     }
 
-    // Upload the new one to Cloudinary
-    const result = await uploadToCloudinary(req.file.path, "profiles");
+    // Use file buffer directly from memory storage (no disk operations needed)
+    const result = await uploadToCloudinary(req.file.buffer, "profiles");
     
     if (result) {
       user.profilePic = result.url;
       user.profilePic_public_id = result.public_id;
       await user.save();
+      console.log("✅ Profile picture URL saved:", result.url);
     } else {
       return res.status(500).json({ message: "Failed to upload image to Cloudinary" });
     }
@@ -293,6 +295,7 @@ export const uploadProfilePic = async (req, res) => {
     const updatedUser = await User.findById(userId).select("-password");
     res.json(updatedUser);
   } catch (err) {
+    console.error("Upload Profile Pic Error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -431,5 +434,72 @@ export const googleLogin = async (req, res) => {
   } catch (err) {
     console.error("Google Login Error:", err);
     res.status(500).json({ message: "Google login failed", error: err.message });
+  }
+};
+
+// @desc    Change user password
+// @route   POST /api/auth/change-password
+// @access  Private
+export const changePassword = async (req, res) => {
+  const { oldPassword, newPassword, confirmPassword } = req.body;
+  
+  try {
+    // Validate new password and confirmation
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({ message: "New password and confirmation are required" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "New passwords do not match" });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
+    // Get user ID from token
+    const userId = getUserIdFromReq(req);
+    if (!userId || userId === "unknown") {
+      return res.status(401).json({ message: "User not authenticated" });
+    }
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // If user has already set a real password (not Google user or already changed password), verify old password
+    if (user.hasPasswordSet) {
+      if (!oldPassword) {
+        return res.status(400).json({ message: "Current password is required" });
+      }
+
+      // Verify old password
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+
+      if (newPassword === oldPassword) {
+        return res.status(400).json({ message: "New password must be different from current password" });
+      }
+    } else {
+      // For Google users setting password for the first time
+      console.log(`✅ Google user ${user.email} setting password for the first time`);
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    
+    // Update password and mark that password has been set
+    user.password = hashedPassword;
+    user.hasPasswordSet = true;
+    await user.save();
+
+    res.status(200).json({ message: "Password changed successfully" });
+  } catch (err) {
+    console.error("Change Password Error:", err);
+    res.status(500).json({ message: err.message });
   }
 };

@@ -28,6 +28,7 @@ const userSchema = new mongoose.Schema(
     city: { type: String, default: "" },
     pincode: { type: String, default: "" },
     googleId: { type: String, default: null },
+    hasPasswordSet: { type: Boolean, default: false }, // Track if user has set a real password
   },
   { timestamps: true }
 );

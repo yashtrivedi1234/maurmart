@@ -9,8 +9,12 @@ import BrandsSection from "@/components/BrandsSection";
 import Testimonials from "@/components/Testimonials";
 import CTASection from "@/components/CTASection";
 import AnimatedSection from "@/components/AnimatedSection";
+import TrendingProductsSection from "@/components/TrendingProductsSection";
+import { useGetTrendingProductsQuery } from "@/store/api/recommendationApi";
 
 const Index = () => {
+  const { data: trendingData, isLoading } = useGetTrendingProductsQuery();
+
   return (
     <>
       <HeroSection />
@@ -23,6 +27,14 @@ const Index = () => {
       <AnimatedSection>
         <TrendingDeals />
       </AnimatedSection>
+      {trendingData?.data && trendingData.data.length > 0 && (
+        <AnimatedSection>
+          <TrendingProductsSection
+            products={trendingData.data}
+            isLoading={isLoading}
+          />
+        </AnimatedSection>
+      )}
       <AnimatedSection>
         <NewArrivals />
       </AnimatedSection>

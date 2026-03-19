@@ -129,9 +129,17 @@ const Navbar = () => {
                 <div className="flex items-center gap-2">
                   <Link to="/profile">
                     <Button variant="outline" size="sm" className="gap-2 border-primary/20 hover:bg-primary/5 rounded-full pl-1 pr-3">
-                      <div className="w-6 h-6 rounded-full hero-gradient flex items-center justify-center text-[10px] text-white font-bold">
-                        {cachedUser?.name?.charAt(0).toUpperCase()}
-                      </div>
+                      {cachedUser?.profilePic ? (
+                        <img 
+                          src={cachedUser.profilePic} 
+                          alt={cachedUser?.name} 
+                          className="w-6 h-6 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-6 h-6 rounded-full hero-gradient flex items-center justify-center text-[10px] text-white font-bold">
+                          {cachedUser?.name?.charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       <span className="max-w-[100px] truncate font-medium">{cachedUser?.name?.split(' ')[0]}</span>
                     </Button>
                   </Link>

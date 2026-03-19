@@ -10,6 +10,7 @@ import { newsletterApi } from "./api/newsletterApi";
 import { contactApi } from "./api/contactApi";
 import { faqApi } from "./api/faqApi";
 import { testimonialApi } from "./api/testimonialApi";
+import { recommendationApi } from "./api/recommendationApi";
 import wishlistReducer from "./slices/wishlistSlice";
 
 export const store = configureStore({
@@ -25,6 +26,7 @@ export const store = configureStore({
     [contactApi.reducerPath]: contactApi.reducer,
     [faqApi.reducerPath]: faqApi.reducer,
     [testimonialApi.reducerPath]: testimonialApi.reducer,
+    [recommendationApi.reducerPath]: recommendationApi.reducer,
     wishlist: wishlistReducer,
   },
   middleware: (getDefaultMiddleware) =>
@@ -39,7 +41,8 @@ export const store = configureStore({
       newsletterApi.middleware,
       contactApi.middleware,
       faqApi.middleware,
-      testimonialApi.middleware
+      testimonialApi.middleware,
+      recommendationApi.middleware
     ),
 });
 
