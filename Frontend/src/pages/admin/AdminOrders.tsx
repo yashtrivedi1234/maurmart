@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { 
   ShoppingBag, 
   Search, 
@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { useGetAllOrdersQuery, useUpdateOrderStatusMutation } from "@/store/api/orderApi";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { usePageRefresh } from "@/hooks/usePageRefresh";
 import {
   Dialog,
   DialogContent,
@@ -58,16 +59,35 @@ interface Order {
 }
 
 const AdminOrders = () => {
-  const { data: orders, isLoading } = useGetAllOrdersQuery({});
+  const ordersQuery = useGetAllOrdersQuery({});
+  const { data: orders, isLoading } = ordersQuery;
   const [updateStatus] = useUpdateOrderStatusMutation();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
+  // Real-time refresh handler
+  const handleRefresh = useCallback(async () => {
+    try {
+      await ordersQuery.refetch();
+      console.log("✅ Orders refreshed");
+    } catch (error) {
+      console.error("❌ Error refreshing orders:", error);
+    }
+  }, [ordersQuery]);
+
+  // Listen for page refresh events
+  usePageRefresh({
+    page: "orders",
+    onRefresh: handleRefresh,
+  });
+
   const handleStatusChange = async (id: string, status: string) => {
     try {
       await updateStatus({ id, status }).unwrap();
       toast.success(`Order status updated to ${status}`);
+      // Refetch orders after status update
+      await handleRefresh();
     } catch (err) {
       toast.error("Failed to update status");
     }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   Package,
   Plus,
@@ -26,6 +26,7 @@ import {
   useUpdateProductMutation,
 } from "@/store/api/productApi";
 import { toast } from "sonner";
+import { usePageRefresh } from "@/hooks/usePageRefresh";
 import {
   Dialog,
   DialogContent,
@@ -712,7 +713,8 @@ const ProductForm = ({
 
 // ─── Main Component ─────────────────────────────────────────────────────────────
 const AdminProducts = () => {
-  const { data: products, isLoading } = useGetProductsQuery({});
+  const productsQuery = useGetProductsQuery({});
+  const { data: products, isLoading } = productsQuery;
   const [deleteProduct] = useDeleteProductMutation();
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
@@ -722,11 +724,28 @@ const AdminProducts = () => {
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Real-time refresh handler
+  const handleRefresh = useCallback(async () => {
+    try {
+      await productsQuery.refetch();
+      console.log("✅ Products refreshed");
+    } catch (error) {
+      console.error("❌ Error refreshing products:", error);
+    }
+  }, [productsQuery]);
+
+  // Listen for page refresh events
+  usePageRefresh({
+    page: "products",
+    onRefresh: handleRefresh,
+  });
+
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this product?")) {
       try {
         await deleteProduct(id).unwrap();
         toast.success("Product deleted successfully");
+        await handleRefresh();
       } catch {
         toast.error("Failed to delete product");
       }
@@ -748,6 +767,7 @@ const AdminProducts = () => {
       console.log("📤 API call: POST /api/products/");
       await createProduct(formData).unwrap();
       console.log("✅ Product created successfully");
+      await handleRefresh();
       toast.success("Product created successfully");
       setIsAddDialogOpen(false);
       setCurrentProduct({});

@@ -3,6 +3,7 @@ import Cart from "../models/cart.model.js";
 import User from "../models/user.model.js";
 import { Product } from "../models/product.model.js";
 import nodemailer from "nodemailer";
+import { getIO } from "../utils/socketManager.js";
 
 // Singleton transporter instance - reuse across all requests
 let transporterInstance = null;
@@ -177,6 +178,20 @@ export const createOrder = async (req, res) => {
     // Clear user cart after successful order
     await Cart.findOneAndUpdate({ user: req.user.id }, { items: [] });
 
+    // Emit real-time event to notify admins
+    try {
+      getIO().to("dashboard").emit("orderCreated", {
+        orderId: savedOrder._id,
+        customerId: req.user.id,
+        totalPrice: savedOrder.totalPrice,
+        itemsCount: items.length,
+        timestamp: new Date(),
+      });
+      getIO().to("dashboard").emit("dashboardReload");
+    } catch (error) {
+      console.error("❌ Error emitting Socket.IO event:", error.message);
+    }
+
     res.status(201).json(savedOrder);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -221,8 +236,23 @@ export const updateOrderStatus = async (req, res) => {
     const order = await Order.findById(req.params.id);
 
     if (order) {
+      const oldStatus = order.status;
       order.status = req.body.status || order.status;
       const updatedOrder = await order.save();
+      
+      // Emit real-time event to notify admins about status change
+      try {
+        getIO().to("dashboard").emit("orderStatusUpdated", {
+          orderId: updatedOrder._id,
+          oldStatus: oldStatus,
+          newStatus: updatedOrder.status,
+          timestamp: new Date(),
+        });
+        getIO().to("dashboard").emit("dashboardReload");
+      } catch (error) {
+        console.error("❌ Error emitting Socket.IO event:", error.message);
+      }
+      
       res.json(updatedOrder);
     } else {
       res.status(404).json({ message: "Order not found" });

@@ -7,6 +7,9 @@ import os from "os";
 import { fileURLToPath } from "url";
 import { v2 as cloudinary } from "cloudinary";
 import nodemailer from "nodemailer";
+import { Server } from "socket.io";
+import http from "http";
+import { setIO } from "./utils/socketManager.js";
 
 /* =======================
    🔧 Configurations
@@ -73,8 +76,26 @@ const __dirname = path.dirname(__filename);
 ======================= */
 
 const app = express();
+const httpServer = http.createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  },
+});
+
+// Register Socket.IO instance globally
+setIO(io);
+
 const PORT = process.env.PORT || 5000;
 const serverStartTime = new Date();
+
+// Store connected admins for broadcasting
+const connectedAdmins = new Set();
 
 /* =======================
    🌐 CORS Setup
@@ -107,6 +128,37 @@ app.use(
     credentials: true,
   })
 );
+
+/* =======================
+   🔌 Socket.IO Event Handlers
+======================= */
+
+io.on("connection", (socket) => {
+  console.log(`✅ Admin connected: ${socket.id}`);
+  connectedAdmins.add(socket.id);
+
+  // Emit initial activeAdmins count
+  io.emit("activeAdmins", connectedAdmins.size);
+
+  // Handle admin disconnect
+  socket.on("disconnect", () => {
+    console.log(`❌ Admin disconnected: ${socket.id}`);
+    connectedAdmins.delete(socket.id);
+    io.emit("activeAdmins", connectedAdmins.size);
+  });
+
+  // Admin explicitly joins dashboard
+  socket.on("joinDashboard", (adminId) => {
+    socket.join("dashboard");
+    console.log(`📊 Admin joined dashboard: ${adminId}`);
+    io.to("dashboard").emit("dashboardReload");
+  });
+
+  // Admin leaves dashboard
+  socket.on("leaveDashboard", () => {
+    socket.leave("dashboard");
+  });
+});
 
 /* =======================
    🧩 Middlewares
@@ -241,7 +293,7 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB Connected");
 
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       verifyEmailConfig();
     });
@@ -250,6 +302,9 @@ mongoose
     console.error("❌ MongoDB Error:", err.message);
     process.exit(1);
   });
+
+// Export io instance for use in controllers
+export { io };
 
 // Verify email configuration
 verifyEmailConfig();

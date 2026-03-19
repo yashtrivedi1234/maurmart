@@ -14,16 +14,24 @@ import {
   Image,
   Mail,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Logo from "@/assets/logo.png";
+import { AdminProvider, useAdminContext } from "@/context/AdminContext";
+import { useAdminRealtime } from "@/hooks/useAdminRealtime";
 
-const AdminLayout = () => {
+const AdminLayoutContent = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isConnected, triggerGlobalRefresh } = useAdminContext();
+
+  // Initialize real-time system
+  useAdminRealtime({ enabled: true, verbose: false });
 
   const menuItems = [
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
@@ -172,9 +180,59 @@ const AdminLayout = () => {
             <img src={Logo} alt="Maurya Mart" className="h-8 w-auto object-contain" />
             <p className="font-display font-bold text-xs">MaurMart Admin</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
-            <Menu className="h-6 w-6" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Connection indicator */}
+            <div className="flex items-center gap-1 px-2 py-1 bg-white rounded-full border">
+              {isConnected ? (
+                <>
+                  <Wifi className="h-3 w-3 text-green-500" />
+                  <span className="text-[10px] font-semibold text-green-700">Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-3 w-3 text-orange-500" />
+                  <span className="text-[10px] font-semibold text-orange-700">Polling</span>
+                </>
+              )}
+            </div>
+            <Button variant="ghost" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
+              <Menu className="h-6 w-6" />
+            </Button>
+          </div>
+        </header>
+
+        {/* Desktop Header with Connection Status */}
+        <header className="hidden md:flex bg-white border-b p-4 sticky top-0 z-30 items-center justify-between">
+          <div className="text-sm text-muted-foreground">
+            {location.pathname.split("/").pop() === "admin" || location.pathname === "/admin" 
+              ? "Dashboard" 
+              : location.pathname.split("/").pop()?.replace(/-/g, " ").toUpperCase()}
+          </div>
+          <div className="flex items-center gap-4">
+            {/* Connection indicator */}
+            <div className="flex items-center gap-2 px-3 py-2 bg-white rounded-full border shadow-sm">
+              {isConnected ? (
+                <>
+                  <Wifi className="h-4 w-4 text-green-500" />
+                  <span className="text-xs font-semibold text-green-700">Live</span>
+                </>
+              ) : (
+                <>
+                  <WifiOff className="h-4 w-4 text-orange-500" />
+                  <span className="text-xs font-semibold text-orange-700">Polling</span>
+                </>
+              )}
+            </div>
+            {/* Refresh button */}
+            <Button 
+              onClick={triggerGlobalRefresh}
+              size="sm"
+              variant="outline"
+              className="gap-2"
+            >
+              ↻ Refresh All
+            </Button>
+          </div>
         </header>
 
         <div className="p-4 md:p-8 max-w-7xl mx-auto">
@@ -182,6 +240,14 @@ const AdminLayout = () => {
         </div>
       </main>
     </div>
+  );
+};
+
+const AdminLayout = () => {
+  return (
+    <AdminProvider>
+      <AdminLayoutContent />
+    </AdminProvider>
   );
 };
 

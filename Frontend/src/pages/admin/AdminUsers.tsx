@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { 
   Users, 
   Search, 
@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useGetAllUsersQuery } from "@/store/api/authApi";
+import { usePageRefresh } from "@/hooks/usePageRefresh";
 import { format } from "date-fns";
 
 interface User {
@@ -28,8 +29,25 @@ interface User {
 }
 
 const AdminUsers = () => {
-  const { data: users, isLoading } = useGetAllUsersQuery({});
+  const usersQuery = useGetAllUsersQuery();
+  const { data: users, isLoading } = usersQuery;
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Real-time refresh handler
+  const handleRefresh = useCallback(async () => {
+    try {
+      await usersQuery.refetch();
+      console.log("✅ Users refreshed");
+    } catch (error) {
+      console.error("❌ Error refreshing users:", error);
+    }
+  }, [usersQuery]);
+
+  // Listen for page refresh events
+  usePageRefresh({
+    page: "users",
+    onRefresh: handleRefresh,
+  });
 
   const filteredUsers = users?.filter((u: User) => 
     u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
