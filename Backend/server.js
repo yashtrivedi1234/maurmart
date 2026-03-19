@@ -86,6 +86,7 @@ const defaultOrigins = [
   "https://maurmart.vercel.app",
   "https://maurmart.onrender.com",
   "https://maurmart.com",
+  "https://www.maurmart.com"
 ];
 
 const envOrigins = (process.env.CORS_ORIGINS || "")
