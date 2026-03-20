@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -25,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Trash2, Plus, Edit } from "lucide-react";
+import { Loader2, Trash2, Plus, Edit, MessageCircleQuestion, FolderOpen } from "lucide-react";
 
 export default function AdminFAQ() {
   const { data: faqs = [], isLoading } = useGetFAQsQuery({});
@@ -107,12 +108,15 @@ export default function AdminFAQ() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Manage FAQs</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground">FAQ Management</h1>
+          <p className="mt-1 text-muted-foreground">Group common questions by category and keep storefront answers current.</p>
+        </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button onClick={handleOpenCreate} className="gap-2">
+            <Button onClick={handleOpenCreate} className="gap-2 rounded-xl shadow-sm">
               <Plus className="w-4 h-4" />
               Add FAQ
             </Button>
@@ -120,6 +124,11 @@ export default function AdminFAQ() {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle>{editingFaq ? "Edit FAQ" : "Create New FAQ"}</DialogTitle>
+              <DialogDescription>
+                {editingFaq
+                  ? "Update the selected question and answer shown on the storefront."
+                  : "Create a new frequently asked question for the storefront FAQ section."}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -168,6 +177,27 @@ export default function AdminFAQ() {
         </Dialog>
       </div>
 
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Card className="rounded-3xl border bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between p-6">
+            <div>
+              <p className="text-sm text-muted-foreground">Total FAQs</p>
+              <p className="mt-2 text-3xl font-display font-bold">{faqs.length}</p>
+            </div>
+            <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><MessageCircleQuestion className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl border bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between p-6">
+            <div>
+              <p className="text-sm text-muted-foreground">Categories</p>
+              <p className="mt-2 text-3xl font-display font-bold">{Object.keys(faqsByCategory).length}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600"><FolderOpen className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+      </div>
+
       {Object.keys(faqsByCategory).length === 0 ? (
         <Card>
           <CardContent className="pt-6">
@@ -178,10 +208,15 @@ export default function AdminFAQ() {
         <div className="space-y-8">
           {Object.entries(faqsByCategory).map(([category, categoryFaqs]) => (
             <div key={category}>
-              <h2 className="text-xl font-bold mb-4">{category}</h2>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-xl font-display font-bold">{category}</h2>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-500">
+                  {(categoryFaqs as any[]).length} items
+                </span>
+              </div>
               <div className="space-y-3">
                 {(categoryFaqs as any[]).map((faq) => (
-                  <Card key={faq._id}>
+                  <Card key={faq._id} className="rounded-3xl shadow-sm">
                     <CardContent className="pt-6">
                       <div>
                         <h3 className="font-semibold text-foreground mb-2">{faq.question}</h3>
@@ -200,6 +235,9 @@ export default function AdminFAQ() {
                             <DialogContent className="sm:max-w-[500px]">
                               <DialogHeader>
                                 <DialogTitle>Edit FAQ</DialogTitle>
+                                <DialogDescription>
+                                  Update the selected question and answer shown on the storefront.
+                                </DialogDescription>
                               </DialogHeader>
                               <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="space-y-2">

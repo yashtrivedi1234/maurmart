@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -15,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Loader2, Trash2, Plus } from "lucide-react";
+import { Loader2, Trash2, Plus, ImageIcon, GalleryHorizontal } from "lucide-react";
 
 export default function AdminBrands() {
   const { data: brands = [], isLoading } = useGetBrandsQuery({});
@@ -85,12 +86,15 @@ export default function AdminBrands() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Manage Brands</h1>
+    <div className="space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-foreground">Brand Library</h1>
+          <p className="mt-1 text-muted-foreground">Upload and manage the partner logos shown across the storefront.</p>
+        </div>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild>
-            <Button className="gap-2">
+            <Button className="gap-2 rounded-xl shadow-sm">
               <Plus className="w-4 h-4" />
               Add Brand
             </Button>
@@ -98,6 +102,9 @@ export default function AdminBrands() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>Add Brand Logo</DialogTitle>
+              <DialogDescription>
+                Upload a brand logo to make it available across the storefront and admin tools.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
@@ -141,22 +148,55 @@ export default function AdminBrands() {
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <Card className="border-0 bg-gradient-to-br from-slate-900 to-slate-800 text-white shadow-lg">
+          <CardContent className="flex items-center justify-between p-6">
+            <div>
+              <p className="text-sm text-slate-300">Total Logos</p>
+              <p className="mt-2 text-3xl font-display font-bold">{brands.length}</p>
+            </div>
+            <div className="rounded-2xl bg-white/10 p-3">
+              <GalleryHorizontal className="h-6 w-6" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border border-slate-200 bg-white shadow-sm sm:col-span-1 xl:col-span-2">
+          <CardContent className="flex items-center gap-4 p-6">
+            <div className="rounded-2xl bg-cyan-50 p-3 text-cyan-600">
+              <ImageIcon className="h-6 w-6" />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground">Brand assets stay lightweight here.</p>
+              <p className="text-sm text-muted-foreground">Use consistent transparent PNGs or clean SVG exports for the best storefront result.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {brands.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="pt-6">
+          <Card className="col-span-full rounded-3xl border-dashed">
+            <CardContent className="py-12">
               <p className="text-center text-gray-500">No brands added yet</p>
             </CardContent>
           </Card>
         ) : (
           brands.map((brand: any) => (
-            <Card key={brand._id}>
-              <CardContent className="pt-6">
+            <Card key={brand._id} className="overflow-hidden rounded-3xl border-slate-200 shadow-sm">
+              <CardContent className="p-6">
+                <div className="mb-5 rounded-2xl border bg-slate-50 p-4">
                 <img
                   src={brand.image}
                   alt="Brand"
-                  className="w-full h-32 object-contain rounded mb-4"
+                  className="w-full h-32 object-contain rounded"
                 />
+                </div>
+                <div className="mb-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">Brand Asset</p>
+                    <p className="text-xs text-muted-foreground">ID: {brand._id.slice(-6)}</p>
+                  </div>
+                </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" className="w-full gap-2">

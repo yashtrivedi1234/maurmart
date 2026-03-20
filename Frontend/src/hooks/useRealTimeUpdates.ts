@@ -15,10 +15,10 @@ import { recommendationApi } from "@/store/api/recommendationApi";
  */
 export const useRealTimeUpdates = () => {
   const dispatch = useDispatch();
-  const { socket } = useSocket();
+  const { socket, isConnected } = useSocket();
 
   useEffect(() => {
-    if (!socket) {
+    if (!socket || !isConnected) {
       console.log("⏳ Waiting for socket connection...");
       return;
     }
@@ -111,7 +111,21 @@ export const useRealTimeUpdates = () => {
 
     return () => {
       console.log("🧹 Cleaning up real-time event listeners");
-      socket.offAny();
+      socket.off("productCreated");
+      socket.off("productUpdated");
+      socket.off("productDeleted");
+      socket.off("productStatusChanged");
+      socket.off("brandCreated");
+      socket.off("brandDeleted");
+      socket.off("heroSlideCreated");
+      socket.off("heroSlideUpdated");
+      socket.off("heroSlideDeleted");
+      socket.off("faqCreated");
+      socket.off("faqUpdated");
+      socket.off("faqDeleted");
+      socket.off("testimonialCreated");
+      socket.off("testimonialUpdated");
+      socket.off("testimonialDeleted");
     };
-  }, [socket, dispatch]);
+  }, [socket, isConnected, dispatch]);
 };

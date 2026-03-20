@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -25,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Trash2, Eye } from "lucide-react";
+import { Loader2, Trash2, Eye, MailOpen, Inbox, Archive } from "lucide-react";
 import { useState } from "react";
 
 const statusColors: Record<string, { bg: string; text: string }> = {
@@ -83,17 +84,112 @@ export default function AdminContact() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Contact Messages</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground">Contact Messages</h1>
           <p className="text-muted-foreground mt-1">
             Total messages: {contacts.length}
           </p>
         </div>
       </div>
 
-      <div className="bg-card rounded-lg border overflow-x-auto">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="rounded-3xl border bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">New</p>
+              <p className="mt-2 text-3xl font-display font-bold">{contacts.filter((c: any) => c.status === "new").length}</p>
+            </div>
+            <div className="rounded-2xl bg-blue-50 p-3 text-blue-600"><Inbox className="h-5 w-5" /></div>
+          </div>
+        </div>
+        <div className="rounded-3xl border bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Replied</p>
+              <p className="mt-2 text-3xl font-display font-bold">{contacts.filter((c: any) => c.status === "replied").length}</p>
+            </div>
+            <div className="rounded-2xl bg-emerald-50 p-3 text-emerald-600"><MailOpen className="h-5 w-5" /></div>
+          </div>
+        </div>
+        <div className="rounded-3xl border bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Archived</p>
+              <p className="mt-2 text-3xl font-display font-bold">{contacts.filter((c: any) => c.status === "archived").length}</p>
+            </div>
+            <div className="rounded-2xl bg-slate-100 p-3 text-slate-600"><Archive className="h-5 w-5" /></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:hidden">
+        {contacts.length === 0 ? (
+          <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">No contact messages yet</div>
+        ) : (
+          contacts.map((contact: any) => (
+            <div key={contact._id} className="rounded-3xl border bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-foreground">{contact.name}</p>
+                  <p className="text-sm text-muted-foreground">{contact.email}</p>
+                </div>
+                <Badge className={statusColors[contact.status].bg}>
+                  <span className={statusColors[contact.status].text}>
+                    {contact.status.charAt(0).toUpperCase() + contact.status.slice(1)}
+                  </span>
+                </Badge>
+              </div>
+              <p className="mt-3 line-clamp-2 text-sm text-slate-600">{contact.subject || "No subject"}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{formatDate(contact.createdAt)}</p>
+              <div className="mt-4 flex gap-2">
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="sm" className="flex-1 rounded-xl" onClick={() => setSelectedContact(contact)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl">
+                    <DialogHeader>
+                      <DialogTitle>Message Details</DialogTitle>
+                      <DialogDescription>Read the full customer message and review its current handling status.</DialogDescription>
+                    </DialogHeader>
+                    {selectedContact && (
+                      <div className="space-y-4">{/* same content */}
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <div><p className="text-sm font-medium text-muted-foreground">Name</p><p>{selectedContact.name}</p></div>
+                          <div><p className="text-sm font-medium text-muted-foreground">Email</p><p>{selectedContact.email}</p></div>
+                          <div className="sm:col-span-2"><p className="text-sm font-medium text-muted-foreground">Subject</p><p>{selectedContact.subject || "—"}</p></div>
+                        </div>
+                        <div><p className="text-sm font-medium text-muted-foreground mb-2">Message</p><div className="bg-muted p-4 rounded-lg whitespace-pre-wrap text-sm">{selectedContact.message}</div></div>
+                      </div>
+                    )}
+                  </DialogContent>
+                </Dialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="sm" className="rounded-xl">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogTitle>Delete Message</AlertDialogTitle>
+                    <AlertDialogDescription>Are you sure you want to delete this contact message? This cannot be undone.</AlertDialogDescription>
+                    <div className="flex gap-2 justify-end">
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(contact._id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+                    </div>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden bg-card rounded-2xl border overflow-x-auto md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -140,6 +236,9 @@ export default function AdminContact() {
                       <DialogContent className="max-w-2xl">
                         <DialogHeader>
                           <DialogTitle>Message Details</DialogTitle>
+                          <DialogDescription>
+                            Read the full customer message and review its current handling status.
+                          </DialogDescription>
                         </DialogHeader>
                         {selectedContact && (
                           <div className="space-y-4">

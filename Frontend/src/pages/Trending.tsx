@@ -4,7 +4,7 @@ import { Search, SlidersHorizontal, Flame, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/shop/ProductCard";
 import FilterSidebar from "@/components/shop/FilterSidebar";
@@ -39,7 +39,13 @@ const Trending = () => {
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [showInStockOnly, setShowInStockOnly] = useState(true);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const { data: products, isLoading } = useGetTrendingProductsQuery({});
+  const { data: response, isLoading } = useGetTrendingProductsQuery({});
+  const products = (response?.data || response || []) as Product[];
+
+  const handleSortChange = (value: string) => {
+    setSort(value);
+    setPage(1);
+  };
 
   // Dynamically get unique categories
   const categories = useMemo<string[]>(() => {
@@ -62,9 +68,7 @@ const Trending = () => {
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
-    if (!products) return [];
-
-    let filtered = (products as Product[]).filter((product) => {
+    const filtered = products.filter((product) => {
       const matchesSearch =
         product.name.toLowerCase().includes(search.toLowerCase()) ||
         product.description?.toLowerCase().includes(search.toLowerCase());
@@ -85,8 +89,7 @@ const Trending = () => {
       return matchesSearch && matchesCategory && matchesPrice && matchesRating && matchesStock;
     });
 
-    // Sort products
-    filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       switch (sort) {
         case "trending":
           return (b.rating || 0) - (a.rating || 0);
@@ -102,8 +105,6 @@ const Trending = () => {
           return 0;
       }
     });
-
-    return filtered;
   }, [products, search, selectedCategories, selectedPriceRange, selectedRating, showInStockOnly, sort]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
@@ -175,6 +176,10 @@ const Trending = () => {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-full sm:w-80">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Trending product filters</SheetTitle>
+                    <SheetDescription>Refine trending products by category, price, rating, and stock status.</SheetDescription>
+                  </SheetHeader>
                   <FilterSidebar
                     categories={categories}
                     selectedCategories={selectedCategories}
@@ -205,7 +210,7 @@ const Trending = () => {
                 />
               </div>
 
-              <Select value={sort} onValueChange={setSort}>
+              <Select value={sort} onValueChange={handleSortChange}>
                 <SelectTrigger className="w-full sm:w-48 rounded-full h-11 bg-white">
                   <SelectValue placeholder="Sort by" />
                 </SelectTrigger>

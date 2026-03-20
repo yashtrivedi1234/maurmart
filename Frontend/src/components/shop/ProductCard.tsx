@@ -16,6 +16,13 @@ import { RootState } from "@/store";
 import { addToWishlist, removeFromWishlist } from "@/store/slices/wishlistSlice";
 import { Heart } from "lucide-react";
 
+// Helper function to get stock status
+const getStockStatus = (stock: number) => {
+  if (stock === 0) return { status: "outOfStock", label: "Out of Stock", color: "bg-red-500" };
+  if (stock <= 10) return { status: "lowStock", label: `Only ${stock} left`, color: "bg-orange-500" };
+  return { status: "inStock", label: "In Stock", color: "bg-green-500" };
+};
+
 const ProductCard = ({ product }: ProductCardProps) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -27,6 +34,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  const stockInfo = getStockStatus(product.stock || 0);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -69,31 +78,45 @@ const ProductCard = ({ product }: ProductCardProps) => {
   };
 
   return (
-    <div className="group bg-card rounded-xl border border-border overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+    <div className={`group bg-card rounded-xl border border-border overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 ${
+      stockInfo.status === "lowStock" ? "border-orange-200 bg-orange-50/30" : ""
+    } ${stockInfo.status === "outOfStock" ? "opacity-75" : ""}`}>
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         <img
           src={product.image}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className={`w-full h-full object-cover transition-transform duration-500 ${
+            stockInfo.status === "outOfStock" ? "grayscale" : "group-hover:scale-110"
+          }`}
         />
         {discount > 0 && (
           <Badge className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-semibold">
             -{discount}%
           </Badge>
         )}
+
+        {/* Stock Status Badge */}
+        <Badge
+          className={`absolute top-3 right-3 text-xs font-semibold text-white shadow-md ${stockInfo.color}`}
+        >
+          {stockInfo.label}
+        </Badge>
+
         <Button
           size="icon"
           variant="ghost"
-          className="absolute top-3 right-3 h-8 w-8 bg-background/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-background transition-all"
+          className="absolute bottom-3 right-3 h-8 w-8 bg-background/80 backdrop-blur-sm rounded-full shadow-sm hover:bg-background transition-all"
           onClick={handleWishlist}
         >
           <Heart className={`h-4 w-4 ${isInWishlist ? "fill-red-500 text-red-500" : "text-muted-foreground"}`} />
         </Button>
-        {product.stock <= 0 && (
-          <div className="absolute inset-0 bg-foreground/50 flex items-center justify-center">
-            <span className="text-primary-foreground font-semibold text-sm bg-foreground/80 px-3 py-1 rounded-full">
+
+        {/* Out of Stock Overlay */}
+        {stockInfo.status === "outOfStock" && (
+          <div className="absolute inset-0 bg-foreground/40 flex items-center justify-center">
+            <span className="text-white font-bold text-sm bg-red-600/90 px-4 py-2 rounded-lg">
               Out of Stock
             </span>
           </div>
@@ -141,16 +164,26 @@ const ProductCard = ({ product }: ProductCardProps) => {
           )}
         </div>
 
+        {/* Stock Indicator Bar (for low stock) */}
+        {stockInfo.status === "lowStock" && (
+          <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+            <div
+              className="bg-orange-500 h-full transition-all"
+              style={{ width: `${(product.stock / 10) * 100}%` }}
+            ></div>
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-2 pt-1">
             <Button
               size="sm"
               className="flex-1 gap-1.5"
-              disabled={product.stock <= 0}
+              disabled={product.stock <= 0 || isLoading}
               onClick={handleAddToCart}
             >
             <ShoppingCart className="h-3.5 w-3.5" />
-            Add to Cart
+            {product.stock <= 0 ? "Out of Stock" : "Add to Cart"}
           </Button>
           <Button 
             size="sm" 

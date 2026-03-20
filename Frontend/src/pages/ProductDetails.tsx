@@ -17,7 +17,7 @@ import { useGetProductByIdQuery, useGetProductsQuery, Product, useAddReviewMutat
 import { MessageSquare } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { useAddToCartMutation } from "@/store/api/cartApi";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   useGetSimilarProductsQuery,
   useGetFrequentlyBoughtTogetherQuery,
@@ -70,8 +70,8 @@ const ProductDetails = () => {
   const [wishlisted, setWishlisted] = useState(false);
   const [isImageOpen, setIsImageOpen] = useState(false);
   const { data: product, isLoading } = useGetProductByIdQuery(id);
-  const { data: allProducts } = useGetProductsQuery(undefined);
-  const products = Array.isArray(allProducts) ? allProducts : [];
+  const { data: allProductsResponse } = useGetProductsQuery(undefined);
+  const products = (allProductsResponse?.data || allProductsResponse || []) as Product[];
   
   const [addToCart, { isLoading: isAdding }] = useAddToCartMutation();
   const [addReview, { isLoading: isSubmittingReview }] = useAddReviewMutation();
@@ -247,6 +247,10 @@ const ProductDetails = () => {
             {/* Image Modal */}
             <Dialog open={isImageOpen} onOpenChange={setIsImageOpen}>
               <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 border-none bg-transparent shadow-none flex items-center justify-center">
+                <DialogHeader className="sr-only">
+                  <DialogTitle>Product image preview</DialogTitle>
+                  <DialogDescription>Expanded preview for {product.name}.</DialogDescription>
+                </DialogHeader>
                 <div className="relative w-full h-full flex items-center justify-center">
                   <img
                     src={product.image}

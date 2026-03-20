@@ -22,10 +22,21 @@ import { usePageRefresh } from "@/hooks/usePageRefresh";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface OrderItem {
   product: {
@@ -65,6 +76,9 @@ const AdminOrders = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<"all" | "Processing" | "Shipped" | "Delivered" | "Cancelled">("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "Paid" | "Pending">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "amount_high" | "amount_low">("newest");
 
   // Real-time refresh handler
   const handleRefresh = useCallback(async () => {
@@ -93,10 +107,19 @@ const AdminOrders = () => {
     }
   };
 
-  const filteredOrders = orders?.filter((o: Order) => 
-    o._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    o.user?.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredOrders = [...(orders || [])]
+    .filter((o: Order) =>
+      o._id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (o.user?.name || "").toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((o: Order) => (statusFilter === "all" ? true : o.status === statusFilter))
+    .filter((o: Order) => (paymentFilter === "all" ? true : o.paymentStatus === paymentFilter))
+    .sort((a: Order, b: Order) => {
+      if (sortBy === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      if (sortBy === "amount_high") return b.totalPrice - a.totalPrice;
+      if (sortBy === "amount_low") return a.totalPrice - b.totalPrice;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -129,13 +152,95 @@ const AdminOrders = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="rounded-xl gap-2">
-              <Filter className="h-4 w-4" /> Filter
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-xl gap-2">
+                  <Filter className="h-4 w-4" /> Filter
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>Status</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={statusFilter} onValueChange={(value) => setStatusFilter(value as typeof statusFilter)}>
+                  <DropdownMenuRadioItem value="all">All statuses</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Processing">Processing</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Shipped">Shipped</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Delivered">Delivered</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Cancelled">Cancelled</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Payment</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as typeof paymentFilter)}>
+                  <DropdownMenuRadioItem value="all">All payments</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Paid">Paid</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Pending">Pending</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>Sort</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                  <DropdownMenuRadioItem value="newest">Newest first</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="oldest">Oldest first</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="amount_high">Amount high-low</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="amount_low">Amount low-high</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="grid gap-4 p-4 md:hidden">
+          {isLoading ? (
+            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Loading orders...</div>
+          ) : filteredOrders.length === 0 ? (
+            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">No orders found.</div>
+          ) : filteredOrders.map((order: Order) => (
+            <div key={order._id} className="rounded-2xl border bg-slate-50/70 p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">#{order._id.substring(order._id.length - 8)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{order.user?.name || "Deleted User"}</p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => { setSelectedOrder(order); setIsDetailsOpen(true); }}>View Details</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleStatusChange(order._id, "Delivered")}>Mark Delivered</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-xs text-muted-foreground">Date</p>
+                  <p className="font-medium">{format(new Date(order.createdAt), "dd MMM, yyyy")}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Amount</p>
+                  <p className="font-semibold">₹{order.totalPrice.toLocaleString("en-IN")}</p>
+                </div>
+              </div>
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <span className={`rounded-full px-3 py-1 text-[10px] font-bold uppercase ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+                <select
+                  value={order.status}
+                  onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                  className="rounded-xl border bg-white px-3 py-2 text-xs font-semibold"
+                >
+                  <option value="Processing">Processing</option>
+                  <option value="Shipped">Shipped</option>
+                  <option value="Delivered">Delivered</option>
+                  <option value="Cancelled">Cancelled</option>
+                </select>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/50 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b">
@@ -178,7 +283,6 @@ const AdminOrders = () => {
                       onChange={(e) => handleStatusChange(order._id, e.target.value)}
                       className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full outline-none border-none cursor-pointer ${getStatusColor(order.status)}`}
                     >
-                      <option value="Pending">Pending</option>
                       <option value="Processing">Processing</option>
                       <option value="Shipped">Shipped</option>
                       <option value="Delivered">Delivered</option>
@@ -193,9 +297,27 @@ const AdminOrders = () => {
                       }}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => {
+                            setSelectedOrder(order);
+                            setIsDetailsOpen(true);
+                          }}>
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleStatusChange(order._id, "Delivered")}>
+                            Mark Delivered
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigator.clipboard?.writeText(order._id)}>
+                            Copy Order ID
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
@@ -210,6 +332,9 @@ const AdminOrders = () => {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Order Details - #{selectedOrder?._id}</DialogTitle>
+            <DialogDescription>
+              Review the order items, delivery information, payment method, and current status.
+            </DialogDescription>
           </DialogHeader>
           
           {selectedOrder && (

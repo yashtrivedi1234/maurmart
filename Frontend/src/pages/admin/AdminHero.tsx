@@ -19,11 +19,13 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface HeroSlide {
   _id: string;
@@ -183,6 +185,9 @@ const AdminHero = () => {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Hero Slide</DialogTitle>
+              <DialogDescription>
+                Create a homepage hero slide with its image, messaging, and call to action.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -229,9 +234,27 @@ const AdminHero = () => {
         </Dialog>
       </div>
 
+      <div className="mb-8 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="rounded-3xl border bg-white shadow-sm">
+          <CardContent className="flex items-center justify-between p-6">
+            <div>
+              <p className="text-sm text-muted-foreground">Live Slides</p>
+              <p className="mt-2 text-3xl font-display font-bold">{slides?.length || 0}</p>
+            </div>
+            <div className="rounded-2xl bg-violet-50 p-3 text-violet-600"><ImageIcon className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl border bg-white shadow-sm md:col-span-2">
+          <CardContent className="p-6">
+            <p className="font-semibold text-foreground">Hero slides define the first impression of the storefront.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Keep headings concise, use high-contrast imagery, and avoid overcrowding the top section.</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
-          <p>Loading slides...</p>
+          <div className="col-span-full rounded-3xl border border-dashed p-10 text-center text-sm text-muted-foreground">Loading slides...</div>
         ) : slides?.map((slide: HeroSlide) => (
           <div key={slide._id} className="bg-white rounded-2xl border overflow-hidden shadow-sm group">
             <div className="aspect-[16/9] relative overflow-hidden">
@@ -264,6 +287,9 @@ const AdminHero = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Hero Slide</DialogTitle>
+            <DialogDescription>
+              Update the selected hero slide content, image, and storefront visibility.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4 py-4">
             <div className="space-y-2">

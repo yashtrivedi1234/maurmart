@@ -28,6 +28,10 @@ import AdminNewsletter from "./pages/admin/AdminNewsletter";
 import AdminContact from "./pages/admin/AdminContact";
 import AdminFAQ from "./pages/admin/AdminFAQ";
 import AdminTrending from "./pages/admin/AdminTrending";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
+import AdminMedia from "./pages/admin/AdminMedia";
+import AdminNotifications from "./pages/admin/AdminNotifications";
+import AdminSettings from "./pages/admin/AdminSettings";
 import AdminLayout from "./components/admin/AdminLayout";
 import ProtectedAdminRoute from "./components/ProtectedAdminRoute";
 import ProductDetails from "./pages/ProductDetails";
@@ -42,7 +46,12 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
           <ScrollToTop />
         <Routes>
           <Route element={<Layout />}>
@@ -67,15 +76,19 @@ const App = () => (
           {/* Protected Admin Routes - Requires Authentication */}
           <Route element={<ProtectedAdminRoute><AdminLayout /></ProtectedAdminRoute>}>
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/analytics" element={<AdminAnalytics />} />
             <Route path="/admin/products" element={<AdminProducts />} />
             <Route path="/admin/trending" element={<AdminTrending />} />
             <Route path="/admin/orders" element={<AdminOrders />} />
             <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/media" element={<AdminMedia />} />
             <Route path="/admin/hero" element={<AdminHero />} />
             <Route path="/admin/brands" element={<AdminBrands />} />
+            <Route path="/admin/notifications" element={<AdminNotifications />} />
             <Route path="/admin/newsletter" element={<AdminNewsletter />} />
             <Route path="/admin/contacts" element={<AdminContact />} />
             <Route path="/admin/faqs" element={<AdminFAQ />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
           </Route>
 
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

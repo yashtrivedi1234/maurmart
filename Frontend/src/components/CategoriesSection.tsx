@@ -4,7 +4,8 @@ import { useGetProductsQuery } from "@/store/api/productApi";
 import { useMemo } from "react";
 
 const CategoriesSection = () => {
-  const { data: products } = useGetProductsQuery({});
+  const { data: response } = useGetProductsQuery({});
+  const products = (response?.data || response || []) as any[];
 
   // Extract unique categories from products dynamically
   const categories = useMemo(() => {

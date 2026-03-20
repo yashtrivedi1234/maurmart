@@ -9,7 +9,8 @@ import {
 
 const Categories = () => {
   const navigate = useNavigate();
-  const { data: products } = useGetProductsQuery({});
+  const { data: response } = useGetProductsQuery({});
+  const products = (response?.data || response || []) as any[];
 
   // Extract unique categories from products dynamically
   const categories = useMemo(() => {

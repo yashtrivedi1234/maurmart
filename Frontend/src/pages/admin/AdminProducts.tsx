@@ -30,6 +30,7 @@ import { usePageRefresh } from "@/hooks/usePageRefresh";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -37,6 +38,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Product {
   _id: string;
@@ -714,11 +725,14 @@ const ProductForm = ({
 // ─── Main Component ─────────────────────────────────────────────────────────────
 const AdminProducts = () => {
   const productsQuery = useGetProductsQuery({});
-  const { data: products, isLoading } = productsQuery;
+  const { data: productsResponse, isLoading } = productsQuery;
+  const products = (productsResponse?.data || productsResponse || []) as Product[];
   const [deleteProduct] = useDeleteProductMutation();
   const [createProduct] = useCreateProductMutation();
   const [updateProduct] = useUpdateProductMutation();
   const [searchTerm, setSearchTerm] = useState("");
+  const [stockFilter, setStockFilter] = useState<"all" | "in_stock" | "low_stock" | "out_of_stock">("all");
+  const [sortBy, setSortBy] = useState<"newest" | "name" | "price_high" | "price_low" | "stock_high" | "stock_low">("newest");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentProduct, setCurrentProduct] = useState<Partial<Product>>({});
@@ -808,11 +822,34 @@ const AdminProducts = () => {
     }
   };
 
-  const filteredProducts = products?.filter(
-    (p: Product) =>
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = [...products]
+    .filter(
+      (p: Product) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.category.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .filter((p: Product) => {
+      if (stockFilter === "in_stock") return p.stock > 10;
+      if (stockFilter === "low_stock") return p.stock > 0 && p.stock <= 10;
+      if (stockFilter === "out_of_stock") return p.stock <= 0;
+      return true;
+    })
+    .sort((a: Product, b: Product) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "price_high":
+          return b.price - a.price;
+        case "price_low":
+          return a.price - b.price;
+        case "stock_high":
+          return b.stock - a.stock;
+        case "stock_low":
+          return a.stock - b.stock;
+        default:
+          return 0;
+      }
+    });
 
   return (
     <>
@@ -843,12 +880,86 @@ const AdminProducts = () => {
             />
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" className="rounded-xl gap-2"><Filter className="h-4 w-4" /> Filter</Button>
-            <Button variant="outline" className="rounded-xl gap-2"><ArrowUpDown className="h-4 w-4" /> Sort</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-xl gap-2"><Filter className="h-4 w-4" /> Filter</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Stock</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={stockFilter} onValueChange={(value) => setStockFilter(value as typeof stockFilter)}>
+                  <DropdownMenuRadioItem value="all">All stock</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="in_stock">In stock</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="low_stock">Low stock</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="out_of_stock">Out of stock</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="rounded-xl gap-2"><ArrowUpDown className="h-4 w-4" /> Sort</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Sort Products</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                  <DropdownMenuRadioItem value="newest">Default order</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="name">Name A-Z</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="price_high">Price high-low</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="price_low">Price low-high</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="stock_high">Stock high-low</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="stock_low">Stock low-high</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="grid gap-4 p-4 md:hidden">
+          {isLoading ? (
+            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">Loading products...</div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">No products found.</div>
+          ) : filteredProducts.map((product: Product) => (
+            <div key={product._id} className="rounded-2xl border bg-slate-50/70 p-4 shadow-sm">
+              <div className="flex items-start gap-3">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border bg-white shrink-0">
+                  <img src={product.image} alt="" className="w-full h-full object-cover" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-sm line-clamp-2">{product.name}</p>
+                      <p className="mt-1 text-[11px] text-muted-foreground">{product.category}</p>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => { setCurrentProduct(product); setIsEditDialogOpen(true); }}>Edit Product</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigator.clipboard?.writeText(product._id)}>Copy Product ID</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDelete(product._id)}>Delete Product</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Price</p>
+                      <p className="font-semibold">₹{product.price.toLocaleString("en-IN")}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Stock</p>
+                      <p className="font-medium">{product.stock} units</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="hidden overflow-x-auto md:block">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-muted/50 text-xs font-bold uppercase tracking-wider text-muted-foreground border-b">
@@ -905,9 +1016,28 @@ const AdminProducts = () => {
                       <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleDelete(product._id)}>
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => { setCurrentProduct(product); setIsEditDialogOpen(true); }}>
+                            Edit Product
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigator.clipboard?.writeText(product._id)}>
+                            Copy Product ID
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            const { _id, ...rest } = product;
+                            setCurrentProduct({ ...rest, name: `${product.name} Copy` });
+                            setIsAddDialogOpen(true);
+                          }}>
+                            Duplicate Product
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </td>
                 </tr>
@@ -922,7 +1052,9 @@ const AdminProducts = () => {
         <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Add New Product</DialogTitle>
-            <p className="text-sm text-muted-foreground">Fill in the details across two steps to create a complete product listing.</p>
+            <DialogDescription>
+              Fill in the details across two steps to create a complete product listing.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <ProductForm
@@ -944,7 +1076,9 @@ const AdminProducts = () => {
         <DialogContent className="max-w-2xl max-h-[92vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Edit Product</DialogTitle>
-            <p className="text-sm text-muted-foreground">Update the details for <strong>{currentProduct.name}</strong>.</p>
+            <DialogDescription>
+              Update the details for {currentProduct.name || "the selected product"}.
+            </DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <ProductForm

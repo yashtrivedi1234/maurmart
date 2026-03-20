@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import io, { Socket } from "socket.io-client";
+import { API_BASE_URL } from "@/lib/apiBase";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -20,8 +21,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     console.log("🔌 Initializing Socket.IO connection...");
 
-    // Connect to the same origin (backend URL)
-    const newSocket = io(undefined, {
+    const newSocket = io(API_BASE_URL, {
+      transports: ["websocket", "polling"],
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
@@ -41,6 +42,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
     newSocket.on("connect_error", (error) => {
       console.error("❌ Socket.IO Connection Error:", error);
+      setIsConnected(false);
     });
 
     setSocket(newSocket);

@@ -4,7 +4,8 @@ import { useGetProductsQuery, Product } from "@/store/api/productApi";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const NewArrivals = () => {
-  const { data: products, isLoading } = useGetProductsQuery({});
+  const { data: response, isLoading } = useGetProductsQuery({});
+  const products = (response?.data || response || []) as Product[];
 
   // Sorting by date to get the newest arrivals
   const newProducts = products ? [...products].sort((a, b) => 

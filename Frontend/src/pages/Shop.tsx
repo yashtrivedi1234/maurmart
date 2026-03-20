@@ -4,13 +4,14 @@ import { Search, SlidersHorizontal, Package } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import ProductCard from "@/components/shop/ProductCard";
 import FilterSidebar from "@/components/shop/FilterSidebar";
-import { useGetProductsQuery, Product } from "@/store/api/productApi";
+import ProductFilter from "@/components/ProductFilter";
+import { useGetProductsQuery, Product, ProductFilters } from "@/store/api/productApi";
 
-const ITEMS_PER_PAGE = 8;
+const ITEMS_PER_PAGE = 12;
 
 const priceRanges = [
   { label: "₹0 – ₹500", min: 0, max: 500 },
@@ -20,30 +21,43 @@ const priceRanges = [
 ];
 
 const sortOptions = [
-  { label: "Popular", value: "popular" },
-  { label: "Newest", value: "newest" },
+  { label: "Latest", value: "newest" },
+  { label: "Stock: High to Low", value: "stock-desc" },
+  { label: "Stock: Low to High", value: "stock-asc" },
   { label: "Price: Low to High", value: "price-asc" },
   { label: "Price: High to Low", value: "price-desc" },
 ];
 
+interface ExtendedProductFilters extends ProductFilters {
+  sortByPrice?: string;
+}
+
 const Shop = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
-  const [sort, setSort] = useState("popular");
+  const [sort, setSort] = useState("newest");
   const [page, setPage] = useState(1);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  
+  // API-level filters
+  const [apiFilters, setApiFilters] = useState<ProductFilters>({});
+  
+  // Legacy filters (kept for backwards compatibility)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     searchParams.get("category") ? [searchParams.get("category")!] : []
   );
   const [selectedPriceRange, setSelectedPriceRange] = useState<number | null>(null);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
   const [showInStockOnly, setShowInStockOnly] = useState(false);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const { data: productsData, isLoading } = useGetProductsQuery({});
+  
+  // Fetch products with API filters
+  const { data: productsResponse, isLoading } = useGetProductsQuery(apiFilters);
+  const productsData = productsResponse?.data || productsResponse || [];
 
   // Dynamically get unique categories
   const categories = useMemo<string[]>(() => {
-    if (!productsData) return [];
-    return Array.from(new Set((productsData as Product[]).map((p) => p.category))).sort();
+    if (!productsData || !Array.isArray(productsData)) return [];
+    return Array.from(new Set(productsData.map((p: Product) => p.category))).sort();
   }, [productsData]);
 
   // Sync URL param with search state
@@ -58,9 +72,6 @@ const Shop = () => {
       if (selectedCategories.length !== 1 || selectedCategories[0] !== cat) {
         setSelectedCategories([cat]);
       }
-    } else if (searchParams.has("category") === false && selectedCategories.length > 0) {
-      // If we want to clear selected category when URL is cleared
-      // setSelectedCategories([]);
     }
   }, [searchParams, search, selectedCategories]);
 
@@ -75,21 +86,27 @@ const Shop = () => {
     }
   };
 
+  const handleFilterChange = (filters: ProductFilters) => {
+    setApiFilters(filters);
+    setPage(1);
+  };
+
   const resetFilters = () => {
     setSelectedCategories([]);
     setSelectedPriceRange(null);
     setSelectedRating(null);
     setShowInStockOnly(false);
     setSearch("");
+    setApiFilters({});
     setPage(1);
     setSearchParams({}); // Clear all URL params
   };
 
   const filtered = useMemo(() => {
-    if (!productsData) return [];
+    if (!productsData || !Array.isArray(productsData)) return [];
     let products = [...productsData];
 
-    // Search
+    // Client-side search (if search param is in URL)
     if (search.trim()) {
       const q = search.toLowerCase();
       products = products.filter(
@@ -97,6 +114,7 @@ const Shop = () => {
       );
     }
 
+    // Legacy filters (for backwards compatibility)
     // Categories
     if (selectedCategories.length > 0) {
       products = products.filter((p: Product) => selectedCategories.includes(p.category));
@@ -113,7 +131,7 @@ const Shop = () => {
       products = products.filter((p: Product) => p.rating >= selectedRating);
     }
 
-    // Stock
+    // Stock (legacy - for backwards compatibility)
     if (showInStockOnly) {
       products = products.filter((p: Product) => p.stock > 0);
     }
@@ -122,8 +140,9 @@ const Shop = () => {
     switch (sort) {
       case "price-asc": products.sort((a: Product, b: Product) => a.price - b.price); break;
       case "price-desc": products.sort((a: Product, b: Product) => b.price - a.price); break;
+      case "stock-asc": products.sort((a: Product, b: Product) => a.stock - b.stock); break;
+      case "stock-desc": products.sort((a: Product, b: Product) => b.stock - a.stock); break;
       case "newest": products.sort((a: Product, b: Product) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()); break;
-      case "popular": products.sort((a: Product, b: Product) => (b.reviews || 0) - (a.reviews || 0)); break;
     }
 
     return products;
@@ -136,7 +155,8 @@ const Shop = () => {
     selectedCategories.length +
     (selectedPriceRange !== null ? 1 : 0) +
     (selectedRating !== null ? 1 : 0) +
-    (showInStockOnly ? 1 : 0);
+    (showInStockOnly ? 1 : 0) +
+    Object.keys(apiFilters).length;
 
   const filterProps = {
     categories,
@@ -176,116 +196,154 @@ const Shop = () => {
             ))}
           </div>
         )}
-        {/* Search + Sort Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search products..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex gap-2">
-            {/* Mobile filter toggle */}
-            <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" className="lg:hidden gap-2">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filters
-                  {activeFilterCount > 0 && (
-                    <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-80 p-6 overflow-y-auto">
-                <FilterSidebar {...filterProps} onClose={() => setMobileFiltersOpen(false)} />
-              </SheetContent>
-            </Sheet>
 
-            <Select value={sort} onValueChange={(v) => { setSort(v); setPage(1); }}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                {sortOptions.map((opt) => (
-                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+        {!isLoading && (
+          <>
+            {/* Search + Sort Bar */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search products..."
+                  value={search}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <div className="flex gap-2">
+                {/* Mobile filter toggle */}
+                <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" className="lg:hidden gap-2">
+                      <SlidersHorizontal className="h-4 w-4" />
+                      Filters
+                      {activeFilterCount > 0 && (
+                        <span className="bg-primary text-primary-foreground text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                          {activeFilterCount}
+                        </span>
+                      )}
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-80 p-6 overflow-y-auto">
+                    <SheetHeader className="sr-only">
+                      <SheetTitle>Product filters</SheetTitle>
+                      <SheetDescription>Refine the product list by category, price, rating, and stock status.</SheetDescription>
+                    </SheetHeader>
+                    <div className="mb-6">
+                      <h2 className="text-lg font-bold mb-4">Filters</h2>
+                      <ProductFilter
+                        onFilterChange={handleFilterChange}
+                        categories={categories}
+                        isLoading={isLoading}
+                      />
+                    </div>
+                    <Button
+                      onClick={() => setMobileFiltersOpen(false)}
+                      className="w-full"
+                      variant="default"
+                    >
+                      Apply Filters
+                    </Button>
+                  </SheetContent>
+                </Sheet>
 
-        <div className="flex gap-8">
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:block w-64 shrink-0">
-            <div className="sticky top-24 bg-card border border-border rounded-xl p-5">
-              <FilterSidebar {...filterProps} />
+                <Select value={sort} onValueChange={(v) => { setSort(v); setPage(1); }}>
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sortOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </aside>
 
-          {/* Product Grid */}
-          <div className="flex-1">
-            {/* Results count */}
-            <p className="text-sm text-muted-foreground mb-4">
-              Showing {paginated.length} of {filtered.length} products
-            </p>
+            <div className="flex gap-8">
+              {/* Desktop Sidebar - New Advanced Filter */}
+              <aside className="hidden lg:block w-72 shrink-0">
+                <div className="sticky top-24">
+                  <h2 className="text-lg font-bold mb-4">Advanced Filters</h2>
+                  <ProductFilter
+                    onFilterChange={handleFilterChange}
+                    categories={categories}
+                    isLoading={isLoading}
+                  />
+                </div>
+              </aside>
 
-            {paginated.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-                {paginated.map((product: Product) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
-              </div>
-            ) : (
-              /* Empty State */
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Package className="h-16 w-16 text-muted-foreground/40 mb-4" />
-                <h3 className="text-lg font-semibold text-foreground mb-2">No products found</h3>
-                <p className="text-muted-foreground text-sm mb-4">
-                  {productsData?.length === 0 ? "No products in database." : "Try adjusting your search or filters."}
+              {/* Product Grid */}
+              <div className="flex-1">
+                {/* Results count */}
+                <p className="text-sm text-muted-foreground mb-4">
+                  Showing {paginated.length} of {filtered.length} products
+                  {Object.keys(apiFilters).length > 0 && (
+                    <span className="text-primary font-semibold"> (filtered by stock status)</span>
+                  )}
                 </p>
-                <Button variant="outline" onClick={resetFilters}>
-                  Reset Filters
-                </Button>
-              </div>
-            )}
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex justify-center items-center gap-2 mt-10">
-                <Button
-                  variant="outline" size="sm"
-                  disabled={page === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  ← Prev
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Button
-                    key={p}
-                    variant={p === page ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setPage(p)}
-                    className="w-9"
-                  >
-                    {p}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline" size="sm"
-                  disabled={page === totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next →
-                </Button>
+                {paginated.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                    {paginated.map((product: Product) => (
+                      <ProductCard key={product._id} product={product} />
+                    ))}
+                  </div>
+                ) : (
+                  /* Empty State */
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Package className="h-16 w-16 text-muted-foreground/40 mb-4" />
+                    <h3 className="text-lg font-semibold text-foreground mb-2">No products found</h3>
+                    <p className="text-muted-foreground text-sm mb-4">
+                      {productsData?.length === 0 ? "No products in database." : "Try adjusting your search or filters."}
+                    </p>
+                    <Button variant="outline" onClick={resetFilters}>
+                      Reset Filters
+                    </Button>
+                  </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-10">
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => p - 1)}
+                    >
+                      ← Prev
+                    </Button>
+                    {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                      if (totalPages <= 7) return i + 1;
+                      if (i < 3) return i + 1;
+                      if (i === 3) return page > 5 ? page - 1 : 4;
+                      if (i === 4) return page > 5 ? page : 5;
+                      if (i === 5) return page > 5 ? page + 1 : totalPages - 1;
+                      return totalPages;
+                    }).map((p) => (
+                      <Button
+                        key={p}
+                        variant={p === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setPage(p)}
+                        className="w-9"
+                      >
+                        {p}
+                      </Button>
+                    ))}
+                    <Button
+                      variant="outline" size="sm"
+                      disabled={page === totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                    >
+                      Next →
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
+            </div>
+          </>
+        )}
       </section>
     </>
   );

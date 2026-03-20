@@ -6,7 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 
 const TrendingDeals = () => {
-  const { data: products, isLoading } = useGetProductsQuery({});
+  const { data: response, isLoading } = useGetProductsQuery({});
+  const products = (response?.data || response || []) as Product[];
 
   // Filter products marked as trending
   const deals = products?.filter((product: Product) => product.isTrending).slice(0, 4) || [];

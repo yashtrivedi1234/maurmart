@@ -1,14 +1,12 @@
 import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Flame,
   Search,
   Filter,
-  ArrowUpDown,
   Edit2,
   Trash2,
-  MoreVertical,
   Plus,
-  Toggle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +18,21 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Product {
   _id: string;
@@ -39,30 +46,29 @@ interface Product {
 }
 
 const AdminTrending = () => {
-  const { data: products, isLoading } = useGetProductsQuery({});
+  const navigate = useNavigate();
+  const { data: productsResponse, isLoading } = useGetProductsQuery({});
   const [updateProductStatus] = useUpdateProductStatusMutation();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("");
   const [sortBy, setSortBy] = useState<"name" | "price" | "rating">("name");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const products = ((productsResponse as { data?: Product[] })?.data || productsResponse || []) as Product[];
 
   // Get unique categories
   const categories = useMemo(() => {
-    if (!products) return [];
-    return Array.from(new Set((products as Product[]).map((p) => p.category))).sort();
+    return Array.from(new Set(products.map((p) => p.category))).sort();
   }, [products]);
 
   // Filter only trending products
   const trendingProducts = useMemo(() => {
-    if (!products) return [];
-    return (products as Product[]).filter((p) => p.isTrending === true);
+    return products.filter((p) => p.isTrending === true);
   }, [products]);
 
   // Get all products for quick add
   const availableProducts = useMemo(() => {
-    if (!products) return [];
-    return (products as Product[]).filter((p) => p.isTrending !== true);
+    return products.filter((p) => p.isTrending !== true);
   }, [products]);
 
   // Filter and sort trending products
@@ -142,13 +148,30 @@ const AdminTrending = () => {
             Manage products featured in the trending section
           </p>
         </div>
-        <Dialog>
-          <div className="flex gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button variant="outline" className="rounded-xl gap-2">
               <Filter className="h-4 w-4" /> Quick Actions
             </Button>
-          </div>
-        </Dialog>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Trending Actions</DropdownMenuLabel>
+            <DropdownMenuItem onClick={() => {
+              setSearchTerm("");
+              setFilterCategory("");
+              setSortBy("name");
+            }}>
+              Reset Filters
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setSortBy("rating")}>
+              Sort by Rating
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => navigate("/admin/products")}>
+              Open Product Manager
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Stats */}
@@ -411,6 +434,9 @@ const AdminTrending = () => {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Product Details</DialogTitle>
+            <DialogDescription>
+              Review the selected product before adding or removing it from trending deals.
+            </DialogDescription>
           </DialogHeader>
           {selectedProduct && (
             <div className="space-y-6 py-4">

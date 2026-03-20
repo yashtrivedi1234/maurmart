@@ -24,7 +24,8 @@ const SearchOverlay = ({ open, onClose }: SearchOverlayProps) => {
   const [results, setResults] = useState<Product[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
-  const { data: products } = useGetProductsQuery({});
+  const { data: response } = useGetProductsQuery({});
+  const products = (response?.data || response || []) as Product[];
   const productsArray = useMemo(() => products || [], [products]);
 
   useEffect(() => {

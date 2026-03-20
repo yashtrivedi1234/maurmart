@@ -6,7 +6,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "react-router-dom";
 
 const FeaturedProducts = () => {
-  const { data: products, isLoading } = useGetProductsQuery({});
+  const { data: response, isLoading } = useGetProductsQuery({});
+  const products = (response?.data || response || []) as Product[];
 
   const featured = products?.slice(0, 8) || [];
 

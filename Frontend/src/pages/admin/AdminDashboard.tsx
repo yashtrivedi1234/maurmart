@@ -9,7 +9,15 @@ import {
   RotateCw,
   Wifi,
   WifiOff,
-  Zap
+  Zap,
+  UserCheck,
+  BadgeIndianRupee,
+  Layers3,
+  ChartColumn,
+  Image,
+  Bell,
+  Settings,
+  ArrowRight
 } from "lucide-react";
 import { useGetProductsQuery } from "@/store/api/productApi";
 import { useGetAllUsersQuery } from "@/store/api/authApi";
@@ -56,9 +64,12 @@ const AdminDashboard = () => {
   const usersQuery = useGetAllUsersQuery();
   const ordersQuery = useGetAllOrdersQuery({});
 
-  const { data: products = [] } = productsQuery;
-  const { data: users = [] } = usersQuery;
-  const { data: orders = [], isLoading: ordersLoading } = ordersQuery;
+  const { data: productsResponse = [] } = productsQuery;
+  const products = (productsResponse?.data || productsResponse || []) as any[];
+  const { data: usersResponse = [] } = usersQuery;
+  const users = (usersResponse?.data || usersResponse || []) as any[];
+  const { data: ordersResponse = [], isLoading: ordersLoading } = ordersQuery;
+  const orders = (ordersResponse?.data || ordersResponse || []) as Order[];
 
   // Get admin context
   const { isConnected, triggerDashboardRefresh } = useAdminContext();
@@ -87,18 +98,57 @@ const AdminDashboard = () => {
     onRefresh: handleRefresh,
   });
 
-  // Calculate total revenue and order count
-  const { totalRevenue, totalOrders } = useMemo(() => {
+  // Calculate dashboard metrics
+  const {
+    totalRevenue,
+    totalOrders,
+    totalCategories,
+    activeUsers,
+    paidUsers,
+    deliveredOrders,
+    pendingOrders,
+  } = useMemo(() => {
     const total = orders.reduce((sum: number, order: Order) => sum + (order.totalPrice || 0), 0);
-    return { totalRevenue: total, totalOrders: orders.length };
+    const categories = new Set(
+      products
+        .map((product: any) => product?.category?.trim())
+        .filter(Boolean)
+    );
+    const orderingUsers = new Set(
+      orders
+        .map((order: Order) => order?.user?._id)
+        .filter(Boolean)
+    );
+    const paidCustomerIds = new Set(
+      orders
+        .filter((order: Order) => ["paid", "completed"].includes((order.paymentStatus || "").toLowerCase()))
+        .map((order: Order) => order?.user?._id)
+        .filter(Boolean)
+    );
+
+    return {
+      totalRevenue: total,
+      totalOrders: orders.length,
+      totalCategories: categories.size,
+      activeUsers: orderingUsers.size,
+      paidUsers: paidCustomerIds.size,
+      deliveredOrders: orders.filter((order: Order) => order.status === "Delivered").length,
+      pendingOrders: orders.filter((order: Order) => order.status === "Processing").length,
+    };
   }, [orders]);
 
-  const stats = [
+  const primaryStats = [
     { 
       name: "Total Products", 
       value: products?.length || 0, 
       icon: Package, 
       color: "bg-blue-500"
+    },
+    { 
+      name: "Total Categories", 
+      value: totalCategories, 
+      icon: Layers3, 
+      color: "bg-cyan-500"
     },
     { 
       name: "Total Orders", 
@@ -107,16 +157,65 @@ const AdminDashboard = () => {
       color: "bg-primary"
     },
     { 
-      name: "Total Users", 
-      value: users?.length || 0, 
-      icon: Users, 
-      color: "bg-purple-500"
-    },
-    { 
       name: "Total Sales", 
       value: `₹${totalRevenue.toLocaleString('en-IN')}`, 
-      icon: TrendingUp, 
+      icon: BadgeIndianRupee, 
       color: "bg-orange-500"
+    },
+  ];
+
+  const userStats = [
+    {
+      name: "Total Users",
+      value: users?.length || 0,
+      icon: Users,
+      color: "bg-purple-500",
+      caption: "All registered accounts",
+    },
+    {
+      name: "Active Users",
+      value: activeUsers,
+      icon: UserCheck,
+      color: "bg-emerald-500",
+      caption: "Users with at least one order",
+    },
+    {
+      name: "Paid Users",
+      value: paidUsers,
+      icon: BadgeIndianRupee,
+      color: "bg-green-600",
+      caption: "Users with paid/completed orders",
+    },
+  ];
+
+  const dashboardModules = [
+    {
+      name: "Analytics",
+      description: "Revenue, orders, users, and category performance.",
+      icon: ChartColumn,
+      path: "/admin/analytics",
+      color: "text-blue-600 bg-blue-50",
+    },
+    {
+      name: "Media",
+      description: "Hero slides, brand assets, and storefront visuals.",
+      icon: Image,
+      path: "/admin/media",
+      color: "text-fuchsia-600 bg-fuchsia-50",
+    },
+    {
+      name: "Notifications",
+      description: "Newsletter audience and customer contact updates.",
+      icon: Bell,
+      path: "/admin/notifications",
+      color: "text-amber-600 bg-amber-50",
+    },
+    {
+      name: "Settings",
+      description: "Admin tools, system shortcuts, and operational controls.",
+      icon: Settings,
+      path: "/admin/settings",
+      color: "text-slate-700 bg-slate-100",
     },
   ];
 
@@ -194,9 +293,9 @@ const AdminDashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid - Now with smooth animations */}
+      {/* Core stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat) => (
+        {primaryStats.map((stat) => (
           <div 
             key={stat.name} 
             className="bg-white rounded-2xl p-6 border shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 animate-in fade-in"
@@ -212,6 +311,64 @@ const AdminDashboard = () => {
             </p>
           </div>
         ))}
+      </div>
+
+      {/* User stats + quick modules */}
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-8 mb-8">
+        <div className="xl:col-span-2 bg-white rounded-2xl p-6 border shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-display font-bold text-lg">User Overview</h3>
+              <p className="text-sm text-muted-foreground mt-1">Customer growth and conversion snapshot.</p>
+            </div>
+            <button onClick={() => navigate("/admin/users")} className="text-primary text-sm font-bold hover:underline">
+              View Users
+            </button>
+          </div>
+          <div className="space-y-4">
+            {userStats.map((stat) => (
+              <div key={stat.name} className="flex items-center justify-between rounded-2xl border bg-muted/20 p-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-xl ${stat.color} text-white shadow-lg`}>
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">{stat.name}</p>
+                    <p className="text-xs text-muted-foreground">{stat.caption}</p>
+                  </div>
+                </div>
+                <p className="text-2xl font-display font-bold text-foreground">{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="xl:col-span-3 bg-white rounded-2xl p-6 border shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h3 className="font-display font-bold text-lg">Dashboard Modules</h3>
+              <p className="text-sm text-muted-foreground mt-1">Shortcuts for the features requested on the main dashboard.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {dashboardModules.map((module) => (
+              <button
+                key={module.name}
+                onClick={() => navigate(module.path)}
+                className="text-left rounded-2xl border p-5 hover:shadow-md hover:border-primary/30 transition-all"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className={`inline-flex rounded-xl p-3 ${module.color}`}>
+                    <module.icon className="h-5 w-5" />
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+                <h4 className="mt-4 font-semibold text-foreground">{module.name}</h4>
+                <p className="mt-1 text-sm text-muted-foreground">{module.description}</p>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Main content grid */}
@@ -286,13 +443,13 @@ const AdminDashboard = () => {
             <div className="border-l-4 border-blue-500 pl-4 p-3 bg-blue-50 rounded-r-lg transition-all duration-300 hover:shadow-md">
               <p className="text-xs text-muted-foreground uppercase font-bold tracking-wide">Pending Orders</p>
               <p className="text-3xl font-bold mt-1 text-blue-600 transition-all duration-300">
-                {orders.filter((o: Order) => o.status === 'Processing').length}
+                {pendingOrders}
               </p>
             </div>
             <div className="border-l-4 border-green-500 pl-4 p-3 bg-green-50 rounded-r-lg transition-all duration-300 hover:shadow-md">
               <p className="text-xs text-muted-foreground uppercase font-bold tracking-wide">Delivered Orders</p>
               <p className="text-3xl font-bold mt-1 text-green-600 transition-all duration-300">
-                {orders.filter((o: Order) => o.status === 'Delivered').length}
+                {deliveredOrders}
               </p>
             </div>
             <div className="border-l-4 border-orange-500 pl-4 p-3 bg-orange-50 rounded-r-lg transition-all duration-300 hover:shadow-md">

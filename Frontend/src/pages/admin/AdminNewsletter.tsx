@@ -41,17 +41,63 @@ export default function AdminNewsletter() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Newsletter Subscribers</h1>
+          <h1 className="text-3xl font-display font-bold text-foreground">Newsletter Subscribers</h1>
           <p className="text-muted-foreground mt-1">
             Total subscribers: {newsletters.length}
           </p>
         </div>
       </div>
 
-      <Card>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Card className="rounded-3xl border bg-white shadow-sm">
+          <CardContent className="p-6">
+            <p className="text-sm text-muted-foreground">Subscribers</p>
+            <p className="mt-2 text-3xl font-display font-bold">{newsletters.length}</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-3xl border bg-white shadow-sm md:col-span-2">
+          <CardContent className="p-6">
+            <p className="font-semibold text-foreground">Use this list for campaign exports and targeted announcements.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Copy individual emails quickly on mobile or desktop and keep messaging relevant.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:hidden">
+        {newsletters.length === 0 ? (
+          <div className="rounded-3xl border border-dashed p-8 text-center text-sm text-muted-foreground">No newsletter subscribers yet</div>
+        ) : newsletters.map((subscriber: any) => (
+          <Card key={subscriber._id} className="rounded-3xl shadow-sm">
+            <CardContent className="p-5">
+              <p className="font-semibold text-foreground break-all">{subscriber.email}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{formatDate(subscriber.createdAt)}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopyEmail(subscriber.email, subscriber._id)}
+                className="mt-4 w-full gap-2 rounded-xl"
+              >
+                {copiedId === subscriber._id ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4" />
+                    Copy Email
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="hidden md:block rounded-3xl">
         <CardHeader>
           <CardTitle>All Subscribers</CardTitle>
         </CardHeader>

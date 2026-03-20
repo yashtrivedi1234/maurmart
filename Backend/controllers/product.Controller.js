@@ -12,11 +12,84 @@ const toBoolean = (value) => value === "true" || value === true;
 /* ----------------------------- GET ALL PRODUCTS ----------------------------- */
 export const getProducts = async (req, res) => {
   try {
-    const products = await Product.find({}).lean();
+    const {
+      stockStatus,
+      minStock,
+      maxStock,
+      sortByStock,
+      category,
+      minPrice,
+      maxPrice,
+      sortByPrice,
+      search,
+    } = req.query;
 
-    res.status(200).json(products);
+    // Build filter object
+    const filter = {};
+
+    // Filter by stock status
+    if (stockStatus) {
+      if (stockStatus === "inStock") {
+        filter.stock = { $gt: 10 };
+      } else if (stockStatus === "lowStock") {
+        filter.stock = { $gte: 1, $lte: 10 };
+      } else if (stockStatus === "outOfStock") {
+        filter.stock = { $eq: 0 };
+      }
+    }
+
+    // Filter by stock range
+    if (minStock || maxStock) {
+      filter.stock = { ...filter.stock };
+      if (minStock) filter.stock.$gte = parseInt(minStock);
+      if (maxStock) filter.stock.$lte = parseInt(maxStock);
+    }
+
+    // Filter by category
+    if (category) {
+      filter.category = category;
+    }
+
+    // Filter by price range
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+    }
+
+    // Filter by search term (name and description)
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Build sort object
+    const sort = {};
+
+    if (sortByStock) {
+      sort.stock = sortByStock === "asc" ? 1 : -1;
+    } else if (sortByPrice) {
+      sort.price = sortByPrice === "asc" ? 1 : -1;
+    } else {
+      // Default sort by newest
+      sort.createdAt = -1;
+    }
+
+    // Execute query with filtering and sorting
+    const products = await Product.find(filter)
+      .sort(sort)
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
@@ -50,9 +123,14 @@ export const getFeaturedProducts = async (req, res) => {
   try {
     const products = await Product.find({ isFeatured: true }).limit(8).lean();
 
-    res.status(200).json(products);
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
@@ -65,9 +143,14 @@ export const getNewArrivals = async (req, res) => {
       .limit(8)
       .lean();
 
-    res.status(200).json(products);
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }
@@ -80,9 +163,14 @@ export const getTrendingProducts = async (req, res) => {
       .limit(8)
       .lean();
 
-    res.status(200).json(products);
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      data: products,
+    });
   } catch (error) {
     res.status(500).json({
+      success: false,
       error: error.message,
     });
   }

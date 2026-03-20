@@ -34,6 +34,18 @@ export interface Product {
   updatedAt: string;
 }
 
+export interface ProductFilters {
+  stockStatus?: string;
+  minStock?: number;
+  maxStock?: number;
+  sortByStock?: string;
+  category?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sortByPrice?: string;
+  search?: string;
+}
+
 export const productApi = createApi({
   reducerPath: "productApi",
   baseQuery: fetchBaseQuery({ 
@@ -51,7 +63,25 @@ export const productApi = createApi({
   tagTypes: ["Product"],
   endpoints: (builder) => ({
     getProducts: builder.query({
-      query: () => "/",
+      query: (filters?: ProductFilters) => {
+        if (!filters || Object.keys(filters).length === 0) {
+          return "/";
+        }
+        
+        const params = new URLSearchParams();
+        
+        if (filters.stockStatus) params.append("stockStatus", filters.stockStatus);
+        if (filters.minStock !== undefined) params.append("minStock", String(filters.minStock));
+        if (filters.maxStock !== undefined) params.append("maxStock", String(filters.maxStock));
+        if (filters.sortByStock) params.append("sortByStock", filters.sortByStock);
+        if (filters.category) params.append("category", filters.category);
+        if (filters.minPrice !== undefined) params.append("minPrice", String(filters.minPrice));
+        if (filters.maxPrice !== undefined) params.append("maxPrice", String(filters.maxPrice));
+        if (filters.sortByPrice) params.append("sortByPrice", filters.sortByPrice);
+        if (filters.search) params.append("search", filters.search);
+        
+        return `/?${params.toString()}`;
+      },
       providesTags: ["Product"],
     }),
     getProductById: builder.query({
