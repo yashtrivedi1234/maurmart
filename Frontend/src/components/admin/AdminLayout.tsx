@@ -105,10 +105,7 @@ const AdminLayoutContent = () => {
         <div className="border-b border-white/10 px-6 py-6">
           <div className="flex items-center gap-3">
             <img src={Logo} alt="MaurMart" className="h-12 w-auto object-contain drop-shadow-md" />
-            <div>
-              <p className="font-display text-lg font-bold tracking-tight">MaurMart Admin</p>
-              <p className="text-xs uppercase tracking-[0.25em] text-teal-300">Control Center</p>
-            </div>
+            
           </div>
           <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">System Status</p>
@@ -284,40 +281,7 @@ const AdminLayoutContent = () => {
         </header>
 
         {/* Desktop Header with Connection Status */}
-        <header className="sticky top-0 z-30 hidden border-b border-white/60 bg-white/75 backdrop-blur-xl md:flex items-center justify-between px-8 py-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">{currentSection}</p>
-            <div className="mt-1 flex items-center gap-2">
-              <h1 className="font-display text-2xl font-bold text-slate-900">{currentTitle}</h1>
-              <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">
-                Admin
-              </span>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm">
-              {isConnected ? (
-                <>
-                  <Wifi className="h-4 w-4 text-green-500" />
-                  <span className="text-xs font-semibold text-green-700">Live</span>
-                </>
-              ) : (
-                <>
-                  <WifiOff className="h-4 w-4 text-orange-500" />
-                  <span className="text-xs font-semibold text-orange-700">Polling</span>
-                </>
-              )}
-            </div>
-            <Button 
-              onClick={triggerGlobalRefresh}
-              size="sm"
-              className="gap-2 rounded-full px-4 shadow-sm"
-            >
-              <Sparkles className="h-4 w-4" />
-              Refresh All
-            </Button>
-          </div>
-        </header>
+       
 
         <div className="mx-auto max-w-7xl px-4 py-5 md:px-8 md:py-8">
           <Outlet />
