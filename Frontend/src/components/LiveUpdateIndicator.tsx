@@ -14,14 +14,10 @@ const LiveUpdateIndicator: React.FC = () => {
 
   useEffect(() => {
     if (!socket || !isConnected) {
-      console.log("⏳ LiveUpdateIndicator: Waiting for socket connection...");
       return;
     }
 
-    console.log("✅ LiveUpdateIndicator socket connected:", socket.id);
-
     const showUpdate = (message: string) => {
-      console.log("🔔 Update notification:", message);
       setLastUpdate(message);
       setIsVisible(true);
 
@@ -61,7 +57,6 @@ const LiveUpdateIndicator: React.FC = () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
-      console.log("🧹 LiveUpdateIndicator: Cleaning up event listeners");
       socket.off("productCreated");
       socket.off("productUpdated");
       socket.off("productDeleted");

@@ -93,8 +93,6 @@ const ProductDetails = () => {
 
   const canReview = canReviewData?.canReview || false;
 
-  console.log("ProductDetails State:", { id, product, isLoading, productsCount: products.length });
-
   if (isLoading) {
     return (
       <section className="container mx-auto px-4 py-20 text-center">

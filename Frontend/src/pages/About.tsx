@@ -176,7 +176,7 @@ const About = () => {
             {[
               { icon: Mail, label: "Email Us", value: "info@maurmart.com" },
               { icon: Phone, label: "Call Us", value: "+91 98765 43210" },
-              { icon: MapPin, label: "Location", value: "India" },
+              { icon: MapPin, label: "Location", value: "Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="bg-card rounded-xl p-6 border border-border card-shadow text-center">
                 <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto mb-3">

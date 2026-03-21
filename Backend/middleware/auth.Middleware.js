@@ -16,9 +16,7 @@ export const authMiddleware = (req, res, next) => {
       return res.status(401).json({ message: "Invalid authorization header format" });
     }
 
-    console.log("🔍 Verifying token...");
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("✅ Token verified, decoded payload:", JSON.stringify(decoded));
     req.user = decoded;
     next();
   } catch (error) {

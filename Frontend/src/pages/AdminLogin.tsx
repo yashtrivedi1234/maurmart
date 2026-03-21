@@ -6,6 +6,7 @@ import Logo from "@/assets/logo.png";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import adminApi from "@/lib/adminApi";
+import { isValidEmail, normalizeEmail } from "@/lib/validation";
 
 export default function AdminLogin() {
   const navigate = useNavigate();
@@ -20,14 +21,23 @@ export default function AdminLogin() {
   }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setCredentials({ ...credentials, [name]: name === "email" ? value.trimStart() : value });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!credentials.email.trim() || !credentials.password.trim()) {
+    const normalizedEmail = normalizeEmail(credentials.email);
+    const trimmedPassword = credentials.password.trim();
+
+    if (!normalizedEmail || !trimmedPassword) {
       toast({ title: "Please fill in all fields", variant: "destructive" });
+      return;
+    }
+
+    if (!isValidEmail(normalizedEmail)) {
+      toast({ title: "Enter a valid email address", variant: "destructive" });
       return;
     }
 
@@ -35,7 +45,10 @@ export default function AdminLogin() {
 
     try {
       // Call backend to verify admin credentials
-      const response = await adminApi.post("/admin/login", credentials);
+      const response = await adminApi.post("/admin/login", {
+        email: normalizedEmail,
+        password: trimmedPassword,
+      });
 
       const data = response.data;
 
@@ -81,7 +94,7 @@ export default function AdminLogin() {
                 <Input
                   type="email"
                   name="email"
-                  placeholder="admin@email.com"
+                  placeholder="admin@maurmart.com"
                   value={credentials.email}
                   onChange={handleChange}
                   disabled={isLoading}
@@ -98,7 +111,7 @@ export default function AdminLogin() {
                 <Input
                   type="password"
                   name="password"
-                  placeholder="••••••••"
+                  placeholder="Enter admin password"
                   value={credentials.password}
                   onChange={handleChange}
                   disabled={isLoading}

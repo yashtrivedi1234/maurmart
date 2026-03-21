@@ -15,6 +15,12 @@ import {
   Maximize2,
   Copy,
   Check,
+  ShoppingBag,
+  Package,
+  Truck,
+  RotateCcw,
+  CreditCard,
+  BadgePercent,
 } from "lucide-react";
 import { API_BASE_URL } from "@/lib/apiBase";
 import { toast } from "sonner";
@@ -34,7 +40,7 @@ const Chatbot = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      text: "Hey! 👋 I'm your MaurMart shopping assistant. I can help you find products, track orders, answer questions about shipping, returns, and more. What can I help you with today?",
+      text: "Hey! I'm your MaurMart shopping assistant. I can help you find products, track orders, answer questions about shipping, returns, and more. What can I help you with today?",
       sender: "bot",
       timestamp: new Date(),
     },
@@ -46,12 +52,12 @@ const Chatbot = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const quickSuggestions = [
-    { label: "🛍️ Find Products", value: "Can you recommend some popular products?" },
-    { label: "📦 Track Order", value: "How can I track my order?" },
-    { label: "🚚 Shipping Info", value: "Tell me about delivery and shipping" },
-    { label: "↩️ Returns", value: "What's your return policy?" },
-    { label: "💳 Payment", value: "What payment methods do you accept?" },
-    { label: "🏷️ Offers", value: "Do you have any current offers or discounts?" },
+    { label: "Find Products", value: "Can you recommend some popular products?", icon: ShoppingBag },
+    { label: "Track Order", value: "How can I track my order?", icon: Package },
+    { label: "Shipping Info", value: "Tell me about delivery and shipping", icon: Truck },
+    { label: "Returns", value: "What's your return policy?", icon: RotateCcw },
+    { label: "Payment", value: "What payment methods do you accept?", icon: CreditCard },
+    { label: "Offers", value: "Do you have any current offers or discounts?", icon: BadgePercent },
   ];
 
   const scrollToBottom = () => {

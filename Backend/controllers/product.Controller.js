@@ -4,10 +4,22 @@ import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { getIO } from "../utils/socketManager.js";
+import { normalizeWhitespace } from "../utils/validation.js";
 
 /* ----------------------------- HELPER FUNCTIONS ----------------------------- */
 
 const toBoolean = (value) => value === "true" || value === true;
+const parseJsonField = (value, fallback) => {
+  if (value === undefined || value === null || value === "") return fallback;
+  return JSON.parse(value);
+};
+const ensurePositiveNumber = (value, field) => {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    throw new Error(`${field} must be a valid non-negative number`);
+  }
+  return parsed;
+};
 
 /* ----------------------------- GET ALL PRODUCTS ----------------------------- */
 export const getProducts = async (req, res) => {
@@ -242,10 +254,24 @@ export const createProduct = async (req, res) => {
       inTheBox,
     } = req.body;
 
-    if (!name || !price || !category) {
+    const normalizedName = normalizeWhitespace(name);
+    const normalizedCategory = normalizeWhitespace(category);
+    const normalizedDescription = normalizeWhitespace(description || "");
+
+    if (!normalizedName || price === undefined || price === "" || !normalizedCategory) {
       return res.status(400).json({
         message: "Name, price and category are required",
       });
+    }
+
+    const parsedPrice = ensurePositiveNumber(price, "Price");
+    const parsedOriginalPrice = originalPrice ? ensurePositiveNumber(originalPrice, "Original price") : 0;
+    const parsedRating = rating ? ensurePositiveNumber(rating, "Rating") : 0;
+    const parsedNumReviews = numReviews ? ensurePositiveNumber(numReviews, "Review count") : 0;
+    const parsedStock = stock ? ensurePositiveNumber(stock, "Stock") : 0;
+
+    if (parsedRating > 5) {
+      return res.status(400).json({ message: "Rating must be between 0 and 5" });
     }
 
     if (!req.file) {
@@ -263,24 +289,24 @@ export const createProduct = async (req, res) => {
     }
 
     const product = new Product({
-      name,
-      price: parseFloat(price),
-      originalPrice: originalPrice ? parseFloat(originalPrice) : 0,
-      description,
-      category,
+      name: normalizedName,
+      price: parsedPrice,
+      originalPrice: parsedOriginalPrice,
+      description: normalizedDescription,
+      category: normalizedCategory,
       image: result.url,
       image_public_id: result.public_id,
-      rating: rating ? parseFloat(rating) : 0,
-      numReviews: numReviews ? parseInt(numReviews) : 0,
-      stock: stock ? parseInt(stock) : 0,
+      rating: parsedRating,
+      numReviews: parsedNumReviews,
+      stock: parsedStock,
       isFeatured: toBoolean(isFeatured),
       isNewArrival: toBoolean(isNewArrival),
       isTrending: toBoolean(isTrending),
-      highlights: highlights ? JSON.parse(highlights) : [],
-      specifications: specifications ? JSON.parse(specifications) : [],
-      questions: questions ? JSON.parse(questions) : [],
-      bankOffers: bankOffers ? JSON.parse(bankOffers) : [],
-      inTheBox: inTheBox ? JSON.parse(inTheBox) : [],
+      highlights: parseJsonField(highlights, []),
+      specifications: parseJsonField(specifications, []),
+      questions: parseJsonField(questions, []),
+      bankOffers: parseJsonField(bankOffers, []),
+      inTheBox: parseJsonField(inTheBox, []),
     });
 
     const createdProduct = await product.save();
@@ -337,23 +363,23 @@ export const updateProduct = async (req, res) => {
 
     /* -------- UPDATE FIELDS -------- */
 
-    product.name = req.body.name ?? product.name;
-    product.description = req.body.description ?? product.description;
-    product.category = req.body.category ?? product.category;
+    if (req.body.name !== undefined) product.name = normalizeWhitespace(req.body.name);
+    if (req.body.description !== undefined) product.description = normalizeWhitespace(req.body.description);
+    if (req.body.category !== undefined) product.category = normalizeWhitespace(req.body.category);
 
     if (req.body.price !== undefined)
-      product.price = parseFloat(req.body.price);
+      product.price = ensurePositiveNumber(req.body.price, "Price");
 
     if (req.body.originalPrice !== undefined)
-      product.originalPrice = parseFloat(req.body.originalPrice);
+      product.originalPrice = ensurePositiveNumber(req.body.originalPrice, "Original price");
 
-    if (req.body.stock !== undefined) product.stock = parseInt(req.body.stock);
+    if (req.body.stock !== undefined) product.stock = ensurePositiveNumber(req.body.stock, "Stock");
 
     if (req.body.rating !== undefined)
-      product.rating = parseFloat(req.body.rating);
+      product.rating = ensurePositiveNumber(req.body.rating, "Rating");
 
     if (req.body.numReviews !== undefined)
-      product.numReviews = parseInt(req.body.numReviews);
+      product.numReviews = ensurePositiveNumber(req.body.numReviews, "Review count");
 
     if (req.body.isFeatured !== undefined)
       product.isFeatured = toBoolean(req.body.isFeatured);
@@ -365,19 +391,27 @@ export const updateProduct = async (req, res) => {
       product.isTrending = toBoolean(req.body.isTrending);
 
     if (req.body.highlights !== undefined)
-      product.highlights = JSON.parse(req.body.highlights);
+      product.highlights = parseJsonField(req.body.highlights, []);
 
     if (req.body.specifications !== undefined)
-      product.specifications = JSON.parse(req.body.specifications);
+      product.specifications = parseJsonField(req.body.specifications, []);
 
     if (req.body.questions !== undefined)
-      product.questions = JSON.parse(req.body.questions);
+      product.questions = parseJsonField(req.body.questions, []);
     
     if (req.body.bankOffers !== undefined)
-      product.bankOffers = JSON.parse(req.body.bankOffers);
+      product.bankOffers = parseJsonField(req.body.bankOffers, []);
     
     if (req.body.inTheBox !== undefined)
-      product.inTheBox = JSON.parse(req.body.inTheBox);
+      product.inTheBox = parseJsonField(req.body.inTheBox, []);
+
+    if (!product.name || !product.category) {
+      return res.status(400).json({ message: "Name and category are required" });
+    }
+
+    if (product.rating > 5) {
+      return res.status(400).json({ message: "Rating must be between 0 and 5" });
+    }
 
     const updatedProduct = await product.save();
 

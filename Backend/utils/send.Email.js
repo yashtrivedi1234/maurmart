@@ -11,9 +11,8 @@ const sendEmail = async (to, subject, text) => {
     });
 
     await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, text });
-    console.log("Email sent successfully ✅");
   } catch (error) {
-    console.log("Email error ❌", error.message);
+    console.error("Email error", error.message);
   }
 };
 

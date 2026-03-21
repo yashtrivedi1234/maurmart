@@ -12,6 +12,7 @@ import { ChevronLeft, CreditCard, Landmark, Wallet, CheckCircle2 } from "lucide-
 import Navbar from "@/components/Navbar";
 import { useCreateRazorpayOrderMutation, useVerifyPaymentMutation } from "@/store/api/paymentApi";
 import { useGetProfileQuery } from "@/store/api/authApi";
+import { isValidName, isValidPhone, isValidPincode, normalizeWhitespace, sanitizeNameInput, sanitizePhoneInput, sanitizePincodeInput } from "@/lib/validation";
 
 declare global {
   interface Window {
@@ -81,7 +82,21 @@ const Checkout = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setShippingAddress({ ...shippingAddress, [name]: value });
+    let nextValue = value;
+
+    if (name === "name" || name === "city") {
+      nextValue = sanitizeNameInput(value);
+    }
+
+    if (name === "phone") {
+      nextValue = sanitizePhoneInput(value);
+    }
+
+    if (name === "pincode") {
+      nextValue = sanitizePincodeInput(value);
+    }
+
+    setShippingAddress({ ...shippingAddress, [name]: nextValue });
     // Clear error when user types
     if (errors[name]) {
       setErrors({ ...errors, [name]: "" });
@@ -91,19 +106,27 @@ const Checkout = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
 
-    if (!shippingAddress.name.trim()) newErrors.name = "Full Name is required";
-    else if (shippingAddress.name.length < 3) newErrors.name = "Name must be at least 3 characters";
+    const normalizedName = normalizeWhitespace(shippingAddress.name);
+    const normalizedAddress = normalizeWhitespace(shippingAddress.address);
+    const normalizedCity = normalizeWhitespace(shippingAddress.city);
+    const normalizedPhone = shippingAddress.phone.trim();
+    const normalizedPincode = shippingAddress.pincode.trim();
 
-    if (!shippingAddress.phone.trim()) newErrors.phone = "Phone Number is required";
-    else if (!/^\d{10}$/.test(shippingAddress.phone)) newErrors.phone = "Enter a valid 10-digit phone number";
+    if (!normalizedName) newErrors.name = "Full Name is required";
+    else if (!isValidName(normalizedName)) newErrors.name = "Name should contain only letters";
+    else if (normalizedName.length < 3) newErrors.name = "Name must be at least 3 characters";
 
-    if (!shippingAddress.address.trim()) newErrors.address = "Full Address is required";
-    else if (shippingAddress.address.length < 10) newErrors.address = "Address must be at least 10 characters";
+    if (!normalizedPhone) newErrors.phone = "Phone Number is required";
+    else if (!isValidPhone(normalizedPhone)) newErrors.phone = "Enter a valid 10-digit phone number starting with 6 to 9";
 
-    if (!shippingAddress.city.trim()) newErrors.city = "City is required";
+    if (!normalizedAddress) newErrors.address = "Full Address is required";
+    else if (normalizedAddress.length < 10) newErrors.address = "Address must be at least 10 characters";
 
-    if (!shippingAddress.pincode.trim()) newErrors.pincode = "Pincode is required";
-    else if (!/^\d{6}$/.test(shippingAddress.pincode)) newErrors.pincode = "Enter a valid 6-digit pincode";
+    if (!normalizedCity) newErrors.city = "City is required";
+    else if (!isValidName(normalizedCity)) newErrors.city = "City should contain only letters";
+
+    if (!normalizedPincode) newErrors.pincode = "Pincode is required";
+    else if (!isValidPincode(normalizedPincode)) newErrors.pincode = "Enter a valid 6-digit pincode";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -161,7 +184,13 @@ const Checkout = () => {
                   quantity: item.quantity,
                   price: item.product.price,
                 })),
-                shippingAddress,
+                shippingAddress: {
+                  name: normalizeWhitespace(shippingAddress.name),
+                  phone: shippingAddress.phone.trim(),
+                  address: normalizeWhitespace(shippingAddress.address),
+                  city: normalizeWhitespace(shippingAddress.city),
+                  pincode: shippingAddress.pincode.trim(),
+                },
                 paymentMethod: "Online Payment",
                 totalPrice: calculateTotal(),
                 razorpay_payment_id: response.razorpay_payment_id,
@@ -262,27 +291,27 @@ const Checkout = () => {
               <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name <span className="text-destructive">*</span></Label>
-                  <Input id="name" name="name" placeholder="Enter Your Full Name" value={shippingAddress.name} onChange={handleInputChange} className={`rounded-xl ${errors.name ? "border-destructive ring-destructive" : ""}`} />
+                  <Input id="name" name="name" placeholder="Aman Verma" value={shippingAddress.name} onChange={handleInputChange} className={`rounded-xl ${errors.name ? "border-destructive ring-destructive" : ""}`} />
                   {errors.name && <p className="text-[10px] text-destructive font-medium px-1">{errors.name}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number <span className="text-destructive">*</span></Label>
-                  <Input id="phone" name="phone" placeholder="Enter Your Mobile Number" value={shippingAddress.phone} onChange={handleInputChange} className={`rounded-xl ${errors.phone ? "border-destructive ring-destructive" : ""}`} />
+                  <Input id="phone" name="phone" placeholder="9876543210" value={shippingAddress.phone} onChange={handleInputChange} className={`rounded-xl ${errors.phone ? "border-destructive ring-destructive" : ""}`} />
                   {errors.phone && <p className="text-[10px] text-destructive font-medium px-1">{errors.phone}</p>}
                 </div>
                 <div className="md:col-span-2 space-y-2">
                   <Label htmlFor="address">Full Address <span className="text-destructive">*</span></Label>
-                  <Input id="address" name="address" placeholder="Enter Your Full Address" value={shippingAddress.address} onChange={handleInputChange} className={`rounded-xl ${errors.address ? "border-destructive ring-destructive" : ""}`} />
+                  <Input id="address" name="address" placeholder="Flat 302, Hazratganj, Near City Mall" value={shippingAddress.address} onChange={handleInputChange} className={`rounded-xl ${errors.address ? "border-destructive ring-destructive" : ""}`} />
                   {errors.address && <p className="text-[10px] text-destructive font-medium px-1">{errors.address}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="city">City <span className="text-destructive">*</span></Label>
-                  <Input id="city" name="city" placeholder="Enter Your City" value={shippingAddress.city} onChange={handleInputChange} className={`rounded-xl ${errors.city ? "border-destructive ring-destructive" : ""}`} />
+                  <Input id="city" name="city" placeholder="Lucknow" value={shippingAddress.city} onChange={handleInputChange} className={`rounded-xl ${errors.city ? "border-destructive ring-destructive" : ""}`} />
                   {errors.city && <p className="text-[10px] text-destructive font-medium px-1">{errors.city}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pincode">Pincode <span className="text-destructive">*</span></Label>
-                  <Input id="pincode" name="pincode" placeholder="Enter Your Pincode" value={shippingAddress.pincode} onChange={handleInputChange} className={`rounded-xl ${errors.pincode ? "border-destructive ring-destructive" : ""}`} />
+                  <Input id="pincode" name="pincode" placeholder="226001" value={shippingAddress.pincode} onChange={handleInputChange} className={`rounded-xl ${errors.pincode ? "border-destructive ring-destructive" : ""}`} />
                   {errors.pincode && <p className="text-[10px] text-destructive font-medium px-1">{errors.pincode}</p>}
                 </div>
               </form>

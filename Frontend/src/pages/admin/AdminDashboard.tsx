@@ -84,7 +84,6 @@ const AdminDashboard = () => {
         ordersQuery.refetch(),
       ]);
       setLastUpdate(new Date());
-      console.log("✅ Dashboard data refreshed");
     } catch (error) {
       console.error("❌ Error refreshing dashboard:", error);
     } finally {

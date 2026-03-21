@@ -3,7 +3,6 @@ let ioInstance = null;
 
 export const setIO = (io) => {
   ioInstance = io;
-  console.log("✅ Socket.IO instance registered");
 };
 
 export const getIO = () => {

@@ -33,9 +33,9 @@ export const useAdminRealtime = ({
   } = useAdminContext();
 
   const log = (message: string, data?: any) => {
-    if (verbose) {
-      console.log(`🔄 [AdminRealtime] ${message}`, data || "");
-    }
+    void message;
+    void data;
+    void verbose;
   };
 
   useEffect(() => {

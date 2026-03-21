@@ -40,8 +40,6 @@ export const useRealtimeDashboard = ({
 
     // Connect event
     socketRef.current.on("connect", () => {
-      console.log("✅ Connected to real-time dashboard");
-      
       // Notify server that admin is on dashboard
       socketRef.current?.emit("joinDashboard", {
         adminId: localStorage.getItem("adminId") || "unknown",
@@ -50,26 +48,23 @@ export const useRealtimeDashboard = ({
 
     // Listen for dashboard reload events
     socketRef.current.on("dashboardReload", () => {
-      console.log("🔄 Real-time dashboard update received");
       onRefresh();
     });
 
     // Order status updated event
     socketRef.current.on("orderStatusUpdated", (data: { orderId: string; oldStatus: string; newStatus: string; timestamp: Date }) => {
-      console.log("📦 Order status changed:", data);
+      void data;
       onRefresh();
     });
 
     // New order event
     socketRef.current.on("orderCreated", (data: { orderId: string; customerId: string; totalPrice: number; itemsCount: number; timestamp: Date }) => {
-      console.log("🆕 New order created:", data);
+      void data;
       onRefresh();
     });
 
     // Disconnect event
-    socketRef.current.on("disconnect", () => {
-      console.log("❌ Disconnected from real-time dashboard");
-    });
+    socketRef.current.on("disconnect", () => {});
 
     // Error event
     socketRef.current.on("error", (error: string) => {
@@ -78,7 +73,6 @@ export const useRealtimeDashboard = ({
 
     // Set up polling interval for additional reliability
     pollingIntervalRef.current = setInterval(() => {
-      console.log("⏰ Polling for updates...");
       onRefresh();
     }, pollingInterval);
 
@@ -107,7 +101,6 @@ export const useRealtimeDashboard = ({
 
   // Function to manually trigger refresh
   const triggerRefresh = () => {
-    console.log("🔄 Manual refresh triggered");
     onRefresh();
   };
 

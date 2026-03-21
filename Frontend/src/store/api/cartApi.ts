@@ -11,7 +11,6 @@ export const cartApi = createApi({
       const token = userToken;
       
       if (token) {
-        console.log("📤 Sending USER token in Cart Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
       } else {
         console.warn("⚠️ No user token found in localStorage for Cart API");

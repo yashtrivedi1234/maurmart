@@ -8,6 +8,7 @@ import { User, Mail, Shield, LogOut, ArrowLeft, Edit2, Camera, Save, X, Phone, L
 import Navbar from "@/components/Navbar";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { toast } from "sonner";
+import { isValidName, isValidPassword, isValidPhone, isValidPincode, normalizeWhitespace, sanitizeNameInput, sanitizePhoneInput, sanitizePincodeInput } from "@/lib/validation";
 
 interface CartItem {
   product: {
@@ -75,10 +76,7 @@ const Profile = () => {
 
   // Listen for token changes and refresh component
   useEffect(() => {
-    const handleTokenChange = () => {
-      console.log("🔄 Profile: tokenChanged event fired, re-rendering");
-      // RTK Query will automatically refetch when token changes
-    };
+    const handleTokenChange = () => {};
 
     window.addEventListener("tokenChanged", handleTokenChange);
     return () => {
@@ -94,8 +92,45 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
+    const normalizedName = normalizeWhitespace(formData.name);
+    const normalizedPhone = formData.phone.trim();
+    const normalizedAddress = normalizeWhitespace(formData.address);
+    const normalizedCity = normalizeWhitespace(formData.city);
+    const normalizedPincode = formData.pincode.trim();
+
+    if (!normalizedName) {
+      toast.error("Full name is required");
+      return;
+    }
+
+    if (!isValidName(normalizedName)) {
+      toast.error("Name should contain only letters");
+      return;
+    }
+
+    if (normalizedPhone && !isValidPhone(normalizedPhone)) {
+      toast.error("Enter a valid 10-digit phone number starting with 6 to 9");
+      return;
+    }
+
+    if (normalizedCity && !isValidName(normalizedCity)) {
+      toast.error("City should contain only letters");
+      return;
+    }
+
+    if (normalizedPincode && !isValidPincode(normalizedPincode)) {
+      toast.error("Enter a valid 6-digit pincode");
+      return;
+    }
+
     try {
-      await updateProfile(formData).unwrap();
+      await updateProfile({
+        name: normalizedName,
+        phone: normalizedPhone,
+        address: normalizedAddress,
+        city: normalizedCity,
+        pincode: normalizedPincode,
+      }).unwrap();
       setIsEditing(false);
       toast.success("Profile updated successfully!");
     } catch (err: unknown) {
@@ -146,7 +181,7 @@ const Profile = () => {
       return;
     }
 
-    if (passwordFormData.newPassword.length < 6) {
+    if (!isValidPassword(passwordFormData.newPassword)) {
       toast.error("Password must be at least 6 characters long");
       return;
     }
@@ -282,7 +317,7 @@ const Profile = () => {
                       <Input 
                         id="name" 
                         value={formData.name} 
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => setFormData({ ...formData, name: sanitizeNameInput(e.target.value) })}
                         className="mt-1 font-display font-bold text-xl h-12 rounded-xl"
                       />
                     </div>
@@ -291,8 +326,8 @@ const Profile = () => {
                       <Input 
                         id="phone" 
                         value={formData.phone} 
-                        placeholder="+91 0000000000"
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        placeholder="9876543210"
+                        onChange={(e) => setFormData({ ...formData, phone: sanitizePhoneInput(e.target.value) })}
                         className="mt-1 h-10 rounded-lg"
                       />
                     </div>
@@ -301,7 +336,7 @@ const Profile = () => {
                       <Input 
                         id="address" 
                         value={formData.address} 
-                        placeholder="Enter your address"
+                        placeholder="House no. 21, Gomti Nagar, Lucknow"
                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                         className="mt-1 h-10 rounded-lg"
                       />
@@ -312,8 +347,8 @@ const Profile = () => {
                         <Input 
                           id="city" 
                           value={formData.city} 
-                          placeholder="Enter city"
-                          onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                          placeholder="Lucknow"
+                          onChange={(e) => setFormData({ ...formData, city: sanitizeNameInput(e.target.value) })}
                           className="mt-1 h-10 rounded-lg"
                         />
                       </div>
@@ -322,8 +357,8 @@ const Profile = () => {
                         <Input 
                           id="pincode" 
                           value={formData.pincode} 
-                          placeholder="Enter pincode"
-                          onChange={(e) => setFormData({ ...formData, pincode: e.target.value })}
+                          placeholder="226010"
+                          onChange={(e) => setFormData({ ...formData, pincode: sanitizePincodeInput(e.target.value) })}
                           className="mt-1 h-10 rounded-lg"
                         />
                       </div>
@@ -522,7 +557,7 @@ const Profile = () => {
                     type={showPasswords.newPassword ? "text" : "password"}
                     value={passwordFormData.newPassword}
                     onChange={(e) => setPasswordFormData({ ...passwordFormData, newPassword: e.target.value })}
-                    placeholder="Enter new password"
+                    placeholder="Minimum 6 characters"
                     className="h-10 rounded-lg pr-10"
                   />
                   <button
@@ -544,7 +579,7 @@ const Profile = () => {
                     type={showPasswords.confirmPassword ? "text" : "password"}
                     value={passwordFormData.confirmPassword}
                     onChange={(e) => setPasswordFormData({ ...passwordFormData, confirmPassword: e.target.value })}
-                    placeholder="Confirm new password"
+                    placeholder="Re-enter new password"
                     className="h-10 rounded-lg pr-10"
                   />
                   <button

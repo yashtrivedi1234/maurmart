@@ -38,8 +38,6 @@ const verifyEmailConfig = () => {
   transporter.verify((error) => {
     if (error) {
       console.error("❌ Email Error:", error.message);
-    } else {
-      console.log("✅ Email ready");
     }
   });
 
@@ -97,8 +95,6 @@ const envOrigins = (process.env.CORS_ORIGINS || "")
 
 const allowedOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
 
-console.log("📋 Allowed CORS Origins:", allowedOrigins);
-
 /* =======================
    🚀 App Init
 ======================= */
@@ -141,7 +137,6 @@ app.use(
 ======================= */
 
 io.on("connection", (socket) => {
-  console.log(`✅ Admin connected: ${socket.id}`);
   connectedAdmins.add(socket.id);
 
   // Emit initial activeAdmins count
@@ -149,7 +144,6 @@ io.on("connection", (socket) => {
 
   // Handle admin disconnect
   socket.on("disconnect", () => {
-    console.log(`❌ Admin disconnected: ${socket.id}`);
     connectedAdmins.delete(socket.id);
     io.emit("activeAdmins", connectedAdmins.size);
   });
@@ -157,7 +151,6 @@ io.on("connection", (socket) => {
   // Admin explicitly joins dashboard
   socket.on("joinDashboard", (adminId) => {
     socket.join("dashboard");
-    console.log(`📊 Admin joined dashboard: ${adminId}`);
     io.to("dashboard").emit("dashboardReload");
   });
 
@@ -299,10 +292,7 @@ app.use((err, req, res, next) => {
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB Connected");
-
     httpServer.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
       verifyEmailConfig();
     });
   })
@@ -345,14 +335,11 @@ const setupRoutes = () => {
 
 const startServer = () => {
   setupRoutes();
-  app.listen(process.env.PORT || 5001, () => {
-    console.log(`Server running on port ${process.env.PORT || 5001} 🚀`);
-  });
+  app.listen(process.env.PORT || 5001, () => {});
 };
 
 // Handle graceful shutdown
 process.on("SIGINT", () => {
   mongoose.connection.close();
-  console.log("Server gracefully terminated");
   process.exit(0);
 });

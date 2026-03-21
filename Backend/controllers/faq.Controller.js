@@ -1,5 +1,6 @@
 import { FAQ } from "../models/faq.model.js";
 import { getIO } from "../utils/socketManager.js";
+import { normalizeWhitespace } from "../utils/validation.js";
 
 export const getFAQs = async (req, res) => {
   try {
@@ -15,7 +16,9 @@ export const getFAQs = async (req, res) => {
 
 export const createFAQ = async (req, res) => {
   try {
-    const { category, question, answer } = req.body;
+    const category = normalizeWhitespace(req.body.category);
+    const question = normalizeWhitespace(req.body.question);
+    const answer = normalizeWhitespace(req.body.answer);
 
     if (!category || !question || !answer) {
       return res.status(400).json({ message: "Category, question, and answer are required" });
@@ -46,7 +49,9 @@ export const createFAQ = async (req, res) => {
 export const updateFAQ = async (req, res) => {
   try {
     const { id } = req.params;
-    const { category, question, answer } = req.body;
+    const category = normalizeWhitespace(req.body.category);
+    const question = normalizeWhitespace(req.body.question);
+    const answer = normalizeWhitespace(req.body.answer);
 
     if (!category || !question || !answer) {
       return res.status(400).json({ message: "Category, question, and answer are required" });

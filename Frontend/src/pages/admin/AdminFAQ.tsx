@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Trash2, Plus, Edit, MessageCircleQuestion, FolderOpen } from "lucide-react";
+import { normalizeWhitespace } from "@/lib/validation";
 
 export default function AdminFAQ() {
   const { data: faqs = [], isLoading } = useGetFAQsQuery({});
@@ -53,22 +54,24 @@ export default function AdminFAQ() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.category.trim() || !form.question.trim() || !form.answer.trim()) {
+    const payload = {
+      category: normalizeWhitespace(form.category),
+      question: normalizeWhitespace(form.question),
+      answer: normalizeWhitespace(form.answer),
+    };
+
+    if (!payload.category || !payload.question || !payload.answer) {
       alert("Please fill in all fields");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      console.log("🚀 " + (editingFaq ? "Updating" : "Creating") + " FAQ...");
       if (editingFaq) {
-        console.log("📤 API call: PATCH /api/faq/", editingFaq._id);
-        await updateFAQ({ id: editingFaq._id, ...form }).unwrap();
+        await updateFAQ({ id: editingFaq._id, ...payload }).unwrap();
       } else {
-        console.log("📤 API call: POST /api/faq/");
-        await createFAQ(form).unwrap();
+        await createFAQ(payload).unwrap();
       }
-      console.log("✅ FAQ " + (editingFaq ? "updated" : "created") + " successfully");
       setIsOpen(false);
       setForm({ category: "", question: "", answer: "" });
     } catch (error: any) {
@@ -81,10 +84,7 @@ export default function AdminFAQ() {
 
   const handleDelete = async (id: string) => {
     try {
-      console.log("🚀 Deleting FAQ...");
-      console.log("📤 API call: DELETE /api/faq/", id);
       await deleteFAQ(id).unwrap();
-      console.log("✅ FAQ deleted successfully");
     } catch (error: any) {
       console.error("❌ Error:", error);
       alert("Error deleting FAQ: " + (error?.data?.message || error?.message));
@@ -134,7 +134,7 @@ export default function AdminFAQ() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Category</label>
                 <Input
-                  placeholder="e.g., Ordering, Delivery, Returns"
+                  placeholder="Ordering, Delivery, Payments"
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
                   disabled={isSubmitting}
@@ -144,7 +144,7 @@ export default function AdminFAQ() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Question</label>
                 <Input
-                  placeholder="Enter the question"
+                  placeholder="How long does delivery usually take?"
                   value={form.question}
                   onChange={(e) => setForm({ ...form, question: e.target.value })}
                   disabled={isSubmitting}
@@ -154,7 +154,7 @@ export default function AdminFAQ() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Answer</label>
                 <Textarea
-                  placeholder="Enter the answer"
+                  placeholder="Orders are usually delivered within 1-3 business days depending on location."
                   rows={5}
                   value={form.answer}
                   onChange={(e) => setForm({ ...form, answer: e.target.value })}
@@ -243,7 +243,7 @@ export default function AdminFAQ() {
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium">Category</label>
                                   <Input
-                                    placeholder="e.g., Ordering, Delivery, Returns"
+                                    placeholder="Ordering, Delivery, Payments"
                                     value={form.category}
                                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                                     disabled={isSubmitting}
@@ -253,7 +253,7 @@ export default function AdminFAQ() {
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium">Question</label>
                                   <Input
-                                    placeholder="Enter the question"
+                                    placeholder="How long does delivery usually take?"
                                     value={form.question}
                                     onChange={(e) => setForm({ ...form, question: e.target.value })}
                                     disabled={isSubmitting}
@@ -263,7 +263,7 @@ export default function AdminFAQ() {
                                 <div className="space-y-2">
                                   <label className="text-sm font-medium">Answer</label>
                                   <Textarea
-                                    placeholder="Enter the answer"
+                                    placeholder="Orders are usually delivered within 1-3 business days depending on location."
                                     rows={5}
                                     value={form.answer}
                                     onChange={(e) => setForm({ ...form, answer: e.target.value })}

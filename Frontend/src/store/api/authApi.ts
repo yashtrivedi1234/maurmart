@@ -26,7 +26,6 @@ export const authApi = createApi({
       const token = adminToken || userToken;
       
       if (token) {
-        console.log("📤 Sending token in Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
       } else {
         console.warn("⚠️ No token found in localStorage");
@@ -68,10 +67,7 @@ export const authApi = createApi({
       }),
     }),
     getProfile: builder.query<User, void>({
-      query: () => {
-        console.log("📥 Fetching profile...");
-        return "/profile";
-      },
+      query: () => "/profile",
       providesTags: ["User"],
     }),
     updateProfile: builder.mutation({

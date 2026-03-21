@@ -4,6 +4,7 @@ import User from "../models/user.model.js";
 import { Product } from "../models/product.model.js";
 import nodemailer from "nodemailer";
 import { getIO } from "../utils/socketManager.js";
+import { isValidName, isValidPhone, isValidPincode, normalizeWhitespace } from "../utils/validation.js";
 
 // Singleton transporter instance - reuse across all requests
 let transporterInstance = null;
@@ -50,8 +51,6 @@ const sendEmailAsync = (mailOptions) => {
         if (error.code === 'EAUTH') {
           console.error("💡 TIP: Check if EMAIL_USER and EMAIL_PASS are correct. If using Gmail, ensure you're using an App Password.");
         }
-      } else {
-        console.log("✅ Email sent successfully to", mailOptions.to, "- ID:", info.messageId);
       }
     });
   } catch (err) {
@@ -121,8 +120,6 @@ const sendOrderEmails = (order, userEmail) => {
     subject: `New Order Received - MaurMart #${order._id.toString().substring(0, 8)}`,
     html: emailTemplate("New Order Details", "Admin"),
   });
-
-  console.log("Order emails queued for sending");
 };
 
 export const createOrder = async (req, res) => {
@@ -131,6 +128,38 @@ export const createOrder = async (req, res) => {
   try {
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "No items in order" });
+    }
+
+    if (!shippingAddress) {
+      return res.status(400).json({ message: "Shipping address is required" });
+    }
+
+    const normalizedShippingAddress = {
+      name: normalizeWhitespace(shippingAddress.name),
+      phone: shippingAddress.phone?.trim(),
+      address: normalizeWhitespace(shippingAddress.address),
+      city: normalizeWhitespace(shippingAddress.city),
+      pincode: shippingAddress.pincode?.trim(),
+    };
+
+    if (!normalizedShippingAddress.name || !isValidName(normalizedShippingAddress.name)) {
+      return res.status(400).json({ message: "Enter a valid full name" });
+    }
+
+    if (!normalizedShippingAddress.phone || !isValidPhone(normalizedShippingAddress.phone)) {
+      return res.status(400).json({ message: "Enter a valid 10-digit mobile number starting with 6 to 9" });
+    }
+
+    if (!normalizedShippingAddress.address || normalizedShippingAddress.address.length < 10) {
+      return res.status(400).json({ message: "Enter a valid full address" });
+    }
+
+    if (!normalizedShippingAddress.city || !isValidName(normalizedShippingAddress.city)) {
+      return res.status(400).json({ message: "Enter a valid city name" });
+    }
+
+    if (!normalizedShippingAddress.pincode || !isValidPincode(normalizedShippingAddress.pincode)) {
+      return res.status(400).json({ message: "Enter a valid 6-digit pincode" });
     }
 
     // Check stock availability before creating order
@@ -149,7 +178,7 @@ export const createOrder = async (req, res) => {
     const order = new Order({
       user: req.user.id,
       items,
-      shippingAddress,
+      shippingAddress: normalizedShippingAddress,
       paymentMethod,
       totalPrice,
       paymentStatus: "Paid",

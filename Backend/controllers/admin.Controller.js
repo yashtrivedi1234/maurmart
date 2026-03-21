@@ -1,8 +1,10 @@
 import jwt from "jsonwebtoken";
+import { isValidEmail, normalizeEmail } from "../utils/validation.js";
 
 export const adminLogin = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const email = normalizeEmail(req.body.email);
+    const password = req.body.password?.trim();
 
     // Get admin credentials from environment variables
     const adminEmail = process.env.ADMIN_EMAIL;
@@ -11,6 +13,10 @@ export const adminLogin = async (req, res) => {
     // Validate input
     if (!email || !password) {
       return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
     }
 
     // Verify credentials against .env

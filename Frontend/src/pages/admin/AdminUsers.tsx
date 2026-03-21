@@ -50,7 +50,6 @@ const AdminUsers = () => {
   const handleRefresh = useCallback(async () => {
     try {
       await usersQuery.refetch();
-      console.log("✅ Users refreshed");
     } catch (error) {
       console.error("❌ Error refreshing users:", error);
     }

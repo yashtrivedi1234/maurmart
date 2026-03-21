@@ -12,7 +12,6 @@ export const orderApi = createApi({
       const token = adminToken || userToken;
       
       if (token) {
-        console.log("🛍️ Sending token in Order Authorization header:", token.substring(0, 50) + "...");
         headers.set("Authorization", `Bearer ${token}`);
       } else {
         console.warn("⚠️ No token found in localStorage for Order API");

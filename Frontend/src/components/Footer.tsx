@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
 import Logo from "@/assets/logo.png";
 
 const Footer = () => {
@@ -43,9 +43,18 @@ const Footer = () => {
           <div>
             <h4 className="font-semibold mb-4">Contact Us</h4>
             <ul className="space-y-2 text-sm text-primary-foreground/60">
-              <li>📧 support@maurmart.com</li>
-              <li>📞 +91 98765 43210</li>
-              <li>📍 India</li>
+              <li className="flex items-start gap-2">
+                <Mail className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>info@maurmart.com</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Phone className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>+91 98765 43210</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021</span>
+              </li>
             </ul>
           </div>
 

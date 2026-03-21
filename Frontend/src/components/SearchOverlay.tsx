@@ -101,7 +101,7 @@ const SearchOverlay = ({ open, onClose }: SearchOverlayProps) => {
           <div className="mt-2 rounded-xl bg-background border border-border shadow-2xl overflow-hidden max-h-[60vh] overflow-y-auto animate-in slide-in-from-top-2 duration-200">
             {results.length === 0 ? (
               <div className="p-10 text-center text-muted-foreground">
-                <div className="text-4xl mb-4">🔍</div>
+                <Search className="h-10 w-10 mx-auto mb-4" />
                 No products found for "{query}"
               </div>
             ) : (

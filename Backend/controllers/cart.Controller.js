@@ -4,8 +4,6 @@ import { Product } from "../models/product.model.js";
 // Get user cart
 export const getCart = async (req, res) => {
   try {
-    console.log("🛒 getCart called - req.user:", JSON.stringify(req.user));
-    
     if (!req.user || !req.user.id) {
       console.error("❌ getCart error: req.user.id is missing", { user: req.user });
       return res.status(401).json({ message: "User not authenticated - missing user ID" });
@@ -13,7 +11,6 @@ export const getCart = async (req, res) => {
 
     let cart = await Cart.findOne({ user: req.user.id }).populate("items.product");
     if (!cart) {
-      console.log("📝 Creating new cart for user:", req.user.id);
       cart = await Cart.create({ user: req.user.id, items: [] });
     }
     res.json(cart);

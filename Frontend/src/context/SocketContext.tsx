@@ -19,8 +19,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    console.log("🔌 Initializing Socket.IO connection...");
-
     const newSocket = io(API_BASE_URL, {
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -31,12 +29,10 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Connection events
     newSocket.on("connect", () => {
-      console.log("✅ Socket.IO Connected! ID:", newSocket.id);
       setIsConnected(true);
     });
 
     newSocket.on("disconnect", () => {
-      console.log("❌ Socket.IO Disconnected");
       setIsConnected(false);
     });
 
@@ -48,7 +44,6 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({
     setSocket(newSocket);
 
     return () => {
-      console.log("🔌 Disconnecting Socket.IO");
       newSocket.disconnect();
     };
   }, []);

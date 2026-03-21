@@ -84,7 +84,6 @@ const AdminOrders = () => {
   const handleRefresh = useCallback(async () => {
     try {
       await ordersQuery.refetch();
-      console.log("✅ Orders refreshed");
     } catch (error) {
       console.error("❌ Error refreshing orders:", error);
     }

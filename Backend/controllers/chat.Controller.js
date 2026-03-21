@@ -11,7 +11,7 @@ export const chat = async (req, res) => {
       return res.status(200).json({
         success: true,
         response:
-          "Chat is being set up. You can reach us at info@maurmart.com or via the Contact page. The chatbot will be active soon!",
+          "Chat is being set up. You can reach us at info@maurmart.com, call +91 98765 43210, or use the Contact page. The chatbot will be active soon!",
       });
     }
 

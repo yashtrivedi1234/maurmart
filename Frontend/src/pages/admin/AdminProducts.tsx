@@ -16,6 +16,9 @@ import {
   Layers,
   X,
   Check,
+  Star,
+  Sparkles as NewArrivalIcon,
+  Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +41,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { normalizeWhitespace } from "@/lib/validation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -89,6 +93,104 @@ interface Product {
   };
   paymentMethods?: string[];
 }
+
+const normalizeStringList = (items: string[] = []) =>
+  items.map((item) => normalizeWhitespace(item)).filter(Boolean);
+
+const normalizeProductPayload = (product: Partial<Product>) => {
+  const next: Record<string, unknown> = {};
+
+  if (product.name !== undefined) next.name = normalizeWhitespace(product.name);
+  if (product.category !== undefined) next.category = normalizeWhitespace(product.category);
+  if (product.description !== undefined) next.description = normalizeWhitespace(product.description);
+  if (product.price !== undefined) next.price = Number(product.price);
+  if (product.originalPrice !== undefined) next.originalPrice = Number(product.originalPrice);
+  if (product.stock !== undefined) next.stock = Number(product.stock);
+  if (product.rating !== undefined) next.rating = Number(product.rating);
+  if (product.numReviews !== undefined) next.numReviews = Number(product.numReviews);
+  if (product.isFeatured !== undefined) next.isFeatured = product.isFeatured;
+  if (product.isNewArrival !== undefined) next.isNewArrival = product.isNewArrival;
+  if (product.isTrending !== undefined) next.isTrending = product.isTrending;
+  if (product.highlights !== undefined) next.highlights = normalizeStringList(product.highlights);
+  if (product.bankOffers !== undefined) next.bankOffers = normalizeStringList(product.bankOffers);
+  if (product.inTheBox !== undefined) next.inTheBox = normalizeStringList(product.inTheBox);
+  if (product.paymentMethods !== undefined) next.paymentMethods = normalizeStringList(product.paymentMethods);
+  if (product.soldLastMonth !== undefined) next.soldLastMonth = Number(product.soldLastMonth);
+
+  if (product.specifications !== undefined) {
+    next.specifications = product.specifications
+      .map((spec) => ({
+        label: normalizeWhitespace(spec.label),
+        value: normalizeWhitespace(spec.value),
+      }))
+      .filter((spec) => spec.label && spec.value);
+  }
+
+  if (product.questions !== undefined) {
+    next.questions = product.questions
+      .map((item) => ({
+        question: normalizeWhitespace(item.question),
+        answer: normalizeWhitespace(item.answer),
+      }))
+      .filter((item) => item.question && item.answer);
+  }
+
+  if (product.deliveryInfo !== undefined) {
+    next.deliveryInfo = {
+      ...(product.deliveryInfo || {}),
+      standard: normalizeWhitespace(product.deliveryInfo?.standard || ""),
+      standardDays: normalizeWhitespace(product.deliveryInfo?.standardDays || ""),
+      express: normalizeWhitespace(product.deliveryInfo?.express || ""),
+      expressDays: normalizeWhitespace(product.deliveryInfo?.expressDays || ""),
+      expressPrice: Number(product.deliveryInfo?.expressPrice || 0),
+    };
+  }
+
+  if (product.sellerInfo !== undefined) {
+    next.sellerInfo = {
+      ...(product.sellerInfo || {}),
+      name: normalizeWhitespace(product.sellerInfo?.name || ""),
+      rating: Number(product.sellerInfo?.rating || 0),
+      ratingPercentage: normalizeWhitespace(product.sellerInfo?.ratingPercentage || ""),
+    };
+  }
+
+  if (product.returnPolicy !== undefined) {
+    next.returnPolicy = {
+      ...(product.returnPolicy || {}),
+      days: Number(product.returnPolicy?.days || 0),
+      description: normalizeWhitespace(product.returnPolicy?.description || ""),
+    };
+  }
+
+  if (product.warranty !== undefined) {
+    next.warranty = {
+      ...(product.warranty || {}),
+      duration: normalizeWhitespace(product.warranty?.duration || ""),
+      description: normalizeWhitespace(product.warranty?.description || ""),
+    };
+  }
+
+  return next;
+};
+
+const validateProductPayload = (product: Partial<Product>) => {
+  const name = normalizeWhitespace(product.name || "");
+  const category = normalizeWhitespace(product.category || "");
+  const price = Number(product.price);
+  const stock = Number(product.stock);
+
+  if (!name) return "Product name is required";
+  if (!category) return "Category is required";
+  if (!Number.isFinite(price) || price <= 0) return "Sale price must be greater than 0";
+  if (!Number.isFinite(stock) || stock < 0) return "Stock cannot be negative";
+  if (product.originalPrice !== undefined && Number(product.originalPrice) < 0) return "MRP cannot be negative";
+  if (product.rating !== undefined) {
+    const rating = Number(product.rating);
+    if (!Number.isFinite(rating) || rating < 0 || rating > 5) return "Rating must be between 0 and 5";
+  }
+  return null;
+};
 
 // ─── Step Indicator ────────────────────────────────────────────────────────────
 const StepIndicator = ({ currentStep }: { currentStep: 1 | 2 }) => (
@@ -305,7 +407,7 @@ const ProductForm = ({
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product Name</Label>
               <Input
                 required
-                placeholder="e.g. Sony WH-1000XM5"
+                placeholder="Amul Gold Full Cream Milk 1L"
                 value={product.name || ""}
                 onChange={(e) => onChange({ ...product, name: e.target.value })}
                 className="rounded-xl"
@@ -315,7 +417,7 @@ const ProductForm = ({
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Category</Label>
               <Input
                 required
-                placeholder="e.g. Headphones"
+                placeholder="Dairy, Snacks, Personal Care"
                 value={product.category || ""}
                 onChange={(e) => onChange({ ...product, category: e.target.value })}
                 className="rounded-xl"
@@ -326,7 +428,7 @@ const ProductForm = ({
               <Input
                 type="number"
                 required
-                placeholder="0"
+                placeholder="25"
                 value={product.stock || ""}
                 onChange={(e) => onChange({ ...product, stock: Number(e.target.value) })}
                 className="rounded-xl"
@@ -346,7 +448,7 @@ const ProductForm = ({
                 <Input
                   type="number"
                   required
-                  placeholder="0"
+                  placeholder="499"
                   value={product.price || ""}
                   onChange={(e) => onChange({ ...product, price: Number(e.target.value) })}
                   className="pl-7 rounded-xl"
@@ -359,7 +461,7 @@ const ProductForm = ({
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">₹</span>
                 <Input
                   type="number"
-                  placeholder="0"
+                  placeholder="599"
                   value={product.originalPrice || ""}
                   onChange={(e) => onChange({ ...product, originalPrice: Number(e.target.value) })}
                   className="pl-7 rounded-xl"
@@ -383,10 +485,10 @@ const ProductForm = ({
           <SectionHeader icon={Sparkles} title="Product Labels" subtitle="Tag this product for better visibility" />
           <div className="grid grid-cols-3 gap-2">
             {[
-              { key: "isFeatured", label: "⭐ Featured", desc: "Shown in featured section", color: "amber" },
-              { key: "isNewArrival", label: "🆕 New Arrival", desc: "Recently added", color: "blue" },
-              { key: "isTrending", label: "🔥 Trending", desc: "Popular right now", color: "red" },
-            ].map(({ key, label, desc, color }) => {
+              { key: "isFeatured", label: "Featured", desc: "Shown in featured section", Icon: Star },
+              { key: "isNewArrival", label: "New Arrival", desc: "Recently added", Icon: NewArrivalIcon },
+              { key: "isTrending", label: "Trending", desc: "Popular right now", Icon: Flame },
+            ].map(({ key, label, desc, Icon }) => {
               const isChecked = product[key as keyof Product] as boolean;
               return (
                 <label
@@ -403,6 +505,7 @@ const ProductForm = ({
                       checked={isChecked || false}
                       onCheckedChange={(checked) => onChange({ ...product, [key]: Boolean(checked) })}
                     />
+                    <Icon className="h-4 w-4 text-primary" />
                     <span className="text-sm font-semibold">{label}</span>
                   </div>
                   <span className="text-[10px] text-muted-foreground pl-6">{desc}</span>
@@ -431,7 +534,7 @@ const ProductForm = ({
           <DynamicList
             items={product.highlights || []}
             onChange={(v) => onChange({ ...product, highlights: v })}
-            placeholder="e.g. 30-hour battery life"
+            placeholder="Rich taste and creamy texture"
             addLabel="Add highlight"
           />
         </div>
@@ -443,7 +546,7 @@ const ProductForm = ({
             {(product.specifications || []).map((s, i) => (
               <div key={i} className="flex gap-2 group">
                 <Input
-                  placeholder="Label (e.g. Color)"
+                  placeholder="Label, e.g. Weight"
                   value={s.label}
                   onChange={(e) => {
                     const n = [...(product.specifications || [])];
@@ -453,7 +556,7 @@ const ProductForm = ({
                   className="rounded-xl text-sm w-2/5"
                 />
                 <Input
-                  placeholder="Value (e.g. Midnight Black)"
+                  placeholder="Value, e.g. 1 litre"
                   value={s.value}
                   onChange={(e) => {
                     const n = [...(product.specifications || [])];
@@ -495,7 +598,7 @@ const ProductForm = ({
             {(product.questions || []).map((q, i) => (
               <div key={i} className="rounded-xl border bg-muted/20 p-3 space-y-2 group relative">
                 <Input
-                  placeholder="Question"
+                  placeholder="Is this item delivered chilled?"
                   value={q.question}
                   onChange={(e) => {
                     const n = [...(product.questions || [])];
@@ -505,7 +608,7 @@ const ProductForm = ({
                   className="rounded-lg text-sm bg-background"
                 />
                 <Textarea
-                  placeholder="Answer"
+                  placeholder="Yes, dairy items are packed and delivered with care."
                   rows={2}
                   value={q.answer}
                   onChange={(e) => {
@@ -545,7 +648,7 @@ const ProductForm = ({
           <DynamicList
             items={product.bankOffers || []}
             onChange={(v) => onChange({ ...product, bankOffers: v })}
-            placeholder="e.g. 10% off on HDFC Credit Cards"
+            placeholder="10% instant discount on HDFC cards"
             addLabel="Add bank offer"
           />
         </div>
@@ -556,7 +659,7 @@ const ProductForm = ({
           <DynamicList
             items={product.inTheBox || []}
             onChange={(v) => onChange({ ...product, inTheBox: v })}
-            placeholder="e.g. USB-C Charging Cable"
+            placeholder="1 x 1L milk pack"
             addLabel="Add box item"
           />
         </div>
@@ -570,7 +673,7 @@ const ProductForm = ({
               <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Units Sold Last Month</Label>
               <Input
                 type="number"
-                placeholder="e.g. 1200"
+                placeholder="350"
                 value={(product as any).soldLastMonth || ""}
                 onChange={(e) => onChange({ ...product, soldLastMonth: Number(e.target.value) })}
                 className="rounded-xl mt-1"
@@ -582,7 +685,7 @@ const ProductForm = ({
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Delivery Type</Label>
                 <Input
-                  placeholder="e.g. Free Delivery"
+                  placeholder="Free delivery"
                   value={(product as any).deliveryInfo?.standard || ""}
                   onChange={(e) => onChange({ ...product, deliveryInfo: { ...(product as any).deliveryInfo, standard: e.target.value } })}
                   className="rounded-xl mt-1"
@@ -591,7 +694,7 @@ const ProductForm = ({
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Estimated Days</Label>
                 <Input
-                  placeholder="e.g. 3-5 business days"
+                  placeholder="30-45 minutes"
                   value={(product as any).deliveryInfo?.standardDays || ""}
                   onChange={(e) => onChange({ ...product, deliveryInfo: { ...(product as any).deliveryInfo, standardDays: e.target.value } })}
                   className="rounded-xl mt-1"
@@ -604,7 +707,7 @@ const ProductForm = ({
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Seller Name</Label>
                 <Input
-                  placeholder="e.g. MaurMart Store"
+                  placeholder="MaurMart Fresh"
                   value={(product as any).sellerInfo?.name || ""}
                   onChange={(e) => onChange({ ...product, sellerInfo: { ...(product as any).sellerInfo, name: e.target.value } })}
                   className="rounded-xl mt-1"
@@ -617,7 +720,7 @@ const ProductForm = ({
                   step="0.1"
                   min="0"
                   max="5"
-                  placeholder="e.g. 4.8"
+                  placeholder="4.7"
                   value={(product as any).sellerInfo?.rating || ""}
                   onChange={(e) => onChange({ ...product, sellerInfo: { ...(product as any).sellerInfo, rating: Number(e.target.value) } })}
                   className="rounded-xl mt-1"
@@ -631,7 +734,7 @@ const ProductForm = ({
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Return Days</Label>
                 <Input
                   type="number"
-                  placeholder="e.g. 30"
+                  placeholder="7"
                   value={(product as any).returnPolicy?.days || ""}
                   onChange={(e) => onChange({ ...product, returnPolicy: { ...(product as any).returnPolicy, days: Number(e.target.value) } })}
                   className="rounded-xl mt-1"
@@ -640,7 +743,7 @@ const ProductForm = ({
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Return Description</Label>
                 <Input
-                  placeholder="e.g. Easy returns available"
+                  placeholder="Easy returns on damaged or incorrect items"
                   value={(product as any).returnPolicy?.description || ""}
                   onChange={(e) => onChange({ ...product, returnPolicy: { ...(product as any).returnPolicy, description: e.target.value } })}
                   className="rounded-xl mt-1"
@@ -653,7 +756,7 @@ const ProductForm = ({
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Warranty Duration</Label>
                 <Input
-                  placeholder="e.g. 1 Year"
+                  placeholder="Best before 2 days"
                   value={(product as any).warranty?.duration || ""}
                   onChange={(e) => onChange({ ...product, warranty: { ...(product as any).warranty, duration: e.target.value } })}
                   className="rounded-xl mt-1"
@@ -662,7 +765,7 @@ const ProductForm = ({
               <div>
                 <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Warranty Description</Label>
                 <Input
-                  placeholder="e.g. By Manufacturer"
+                  placeholder="Storage and freshness guidance included"
                   value={(product as any).warranty?.description || ""}
                   onChange={(e) => onChange({ ...product, warranty: { ...(product as any).warranty, description: e.target.value } })}
                   className="rounded-xl mt-1"
@@ -676,7 +779,7 @@ const ProductForm = ({
               <DynamicList
                 items={(product as any).paymentMethods || []}
                 onChange={(v) => onChange({ ...product, paymentMethods: v })}
-                placeholder="e.g. UPI, Cards, NetBanking"
+                placeholder="UPI, Cards, Wallets"
                 addLabel="Add payment method"
               />
             </div>
@@ -688,7 +791,7 @@ const ProductForm = ({
           <SectionHeader icon={Layers} title="Description" subtitle="Full product description shown on the product page" />
           <Textarea
             rows={5}
-            placeholder="Describe the product in detail..."
+            placeholder="Describe the product, quality, usage, pack size, and any key buying details."
             value={product.description || ""}
             onChange={(e) => onChange({ ...product, description: e.target.value })}
             className="rounded-xl resize-none text-sm"
@@ -742,7 +845,6 @@ const AdminProducts = () => {
   const handleRefresh = useCallback(async () => {
     try {
       await productsQuery.refetch();
-      console.log("✅ Products refreshed");
     } catch (error) {
       console.error("❌ Error refreshing products:", error);
     }
@@ -768,19 +870,23 @@ const AdminProducts = () => {
 
   const handleCreate = async (e: React.FormEvent, file: File | null) => {
     e.preventDefault();
-    console.log("🚀 Creating product...");
     setIsSubmitting(true);
     try {
       if (!file) { toast.error("Please select a product image"); return; }
+      const payload = normalizeProductPayload(currentProduct);
+      const validationError = validateProductPayload(payload as Partial<Product>);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
       const formData = new FormData();
-      Object.entries(currentProduct).forEach(([key, value]) => {
+      Object.entries(payload).forEach(([key, value]) => {
         if (Array.isArray(value)) formData.append(key, JSON.stringify(value));
+        else if (typeof value === "object" && value !== null) formData.append(key, JSON.stringify(value));
         else formData.append(key, String(value));
       });
       formData.append("image", file);
-      console.log("📤 API call: POST /api/products/");
       await createProduct(formData).unwrap();
-      console.log("✅ Product created successfully");
       await handleRefresh();
       toast.success("Product created successfully");
       setIsAddDialogOpen(false);
@@ -796,20 +902,24 @@ const AdminProducts = () => {
 
   const handleUpdate = async (e: React.FormEvent, file: File | null) => {
     e.preventDefault();
-    console.log("🚀 Updating product...");
     setIsSubmitting(true);
     try {
+      const payload = normalizeProductPayload(currentProduct);
+      const validationError = validateProductPayload(payload as Partial<Product>);
+      if (validationError) {
+        toast.error(validationError);
+        return;
+      }
       const formData = new FormData();
-      Object.entries(currentProduct).forEach(([key, value]) => {
+      Object.entries(payload).forEach(([key, value]) => {
         if (key !== "_id" && key !== "image") {
           if (Array.isArray(value)) formData.append(key, JSON.stringify(value));
+          else if (typeof value === "object" && value !== null) formData.append(key, JSON.stringify(value));
           else formData.append(key, String(value));
         }
       });
       if (file) formData.append("image", file);
-      console.log("📤 API call: PATCH /api/products/", currentProduct._id);
       await updateProduct({ id: currentProduct._id!, formData }).unwrap();
-      console.log("✅ Product updated successfully");
       toast.success("Product updated successfully");
       setIsEditDialogOpen(false);
       setCurrentProduct({});

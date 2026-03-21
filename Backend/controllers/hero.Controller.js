@@ -1,6 +1,7 @@
 import { HeroSlide } from "../models/hero.model.js";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import { getIO } from "../utils/socketManager.js";
+import { normalizeWhitespace } from "../utils/validation.js";
 
 // @desc    Get all hero slides
 // @route   GET /api/heroes
@@ -21,7 +22,14 @@ export const getHeroSlides = async (req, res) => {
 // @access  Private/Admin
 export const createHeroSlide = async (req, res) => {
   try {
-    const { badge, heading, highlight, sub } = req.body;
+    const badge = normalizeWhitespace(req.body.badge);
+    const heading = normalizeWhitespace(req.body.heading);
+    const highlight = normalizeWhitespace(req.body.highlight);
+    const sub = normalizeWhitespace(req.body.sub);
+
+    if (!heading || !highlight || !sub) {
+      return res.status(400).json({ message: "Heading, highlight, and subtext are required" });
+    }
 
     if (!req.file) {
       return res.status(400).json({ message: "Hero image upload is required" });
@@ -92,6 +100,10 @@ export const deleteHeroSlide = async (req, res) => {
 export const updateHeroSlide = async (req, res) => {
   try {
     const slide = await HeroSlide.findById(req.params.id);
+    const badge = req.body.badge !== undefined ? normalizeWhitespace(req.body.badge) : undefined;
+    const heading = req.body.heading !== undefined ? normalizeWhitespace(req.body.heading) : undefined;
+    const highlight = req.body.highlight !== undefined ? normalizeWhitespace(req.body.highlight) : undefined;
+    const sub = req.body.sub !== undefined ? normalizeWhitespace(req.body.sub) : undefined;
 
     if (slide) {
         if (req.file) {
@@ -108,10 +120,14 @@ export const updateHeroSlide = async (req, res) => {
       slide.image_public_id = result.public_id;
         }
 
-        slide.badge = req.body.badge || slide.badge;
-        slide.heading = req.body.heading || slide.heading;
-        slide.highlight = req.body.highlight || slide.highlight;
-        slide.sub = req.body.sub || slide.sub;
+        if (badge !== undefined) slide.badge = badge;
+        if (heading !== undefined) slide.heading = heading;
+        if (highlight !== undefined) slide.highlight = highlight;
+        if (sub !== undefined) slide.sub = sub;
+
+        if (!slide.heading || !slide.highlight || !slide.sub) {
+          return res.status(400).json({ message: "Heading, highlight, and subtext are required" });
+        }
 
         const updatedSlide = await slide.save();
         

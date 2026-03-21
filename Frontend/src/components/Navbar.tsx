@@ -37,17 +37,12 @@ const Navbar = () => {
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === "token") {
-        console.log("📦 Token changed via storage event");
         setTokenUpdate(prev => prev + 1); // Force re-render
       }
     };
 
     const handleTokenChange = () => {
-      console.log("🔄 tokenChanged event fired, forcing component re-render");
       setTokenUpdate(prev => prev + 1); // Force re-render
-      const newToken = localStorage.getItem("token");
-      console.log("🔑 New token from localStorage:", newToken ? newToken.substring(0, 50) + "..." : "null");
-      console.log("✅ Component will re-render and RTK Query will automatically fetch profile");
     };
 
     window.addEventListener("storage", handleStorageChange);

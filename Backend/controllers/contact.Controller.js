@@ -1,17 +1,35 @@
 import { Contact } from "../models/contact.model.js";
+import { isValidEmail, isValidName, isValidPhone, normalizeEmail, normalizeWhitespace } from "../utils/validation.js";
 
 export const submitContact = async (req, res) => {
   try {
-    const { name, email, subject, message } = req.body;
+    const name = normalizeWhitespace(req.body.name);
+    const email = normalizeEmail(req.body.email);
+    const phone = req.body.phone?.trim();
+    const subject = normalizeWhitespace(req.body.subject || "");
+    const message = normalizeWhitespace(req.body.message);
 
-    if (!name || !email || !message) {
-      return res.status(400).json({ message: "Name, email, and message are required" });
+    if (!name || !email || !phone || !message) {
+      return res.status(400).json({ message: "Name, email, phone, and message are required" });
+    }
+
+    if (!isValidName(name)) {
+      return res.status(400).json({ message: "Name should contain only letters and spaces" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({ message: "Enter a valid 10-digit mobile number starting with 6 to 9" });
     }
 
     const newContact = new Contact({
       name,
       email,
-      subject: subject || "",
+      phone,
+      subject,
       message,
     });
 

@@ -25,11 +25,31 @@ const orderSchema = new mongoose.Schema(
       },
     ],
     shippingAddress: {
-      name: { type: String, required: true },
-      phone: { type: String, required: true },
-      address: { type: String, required: true },
-      city: { type: String, required: true },
-      pincode: { type: String, required: true },
+      name: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^[A-Za-z ]+$/, "Name should contain only letters and spaces"],
+      },
+      phone: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^[6-9]\d{9}$/, "Phone number must be 10 digits and start with 6 to 9"],
+      },
+      address: { type: String, required: true, trim: true, minlength: 10 },
+      city: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^[A-Za-z ]+$/, "City should contain only letters and spaces"],
+      },
+      pincode: {
+        type: String,
+        required: true,
+        trim: true,
+        match: [/^\d{6}$/, "Pincode must be 6 digits"],
+      },
     },
     paymentMethod: {
       type: String,

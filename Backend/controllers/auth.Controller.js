@@ -5,6 +5,7 @@ import nodemailer from "nodemailer";
 import path from "path";
 import { fileURLToPath } from "url";
 import { uploadToCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
+import { isValidEmail, isValidName, isValidOtp, isValidPassword, isValidPhone, isValidPincode, normalizeEmail, normalizeWhitespace } from "../utils/validation.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -59,8 +60,6 @@ const sendEmailAsync = (mailOptions) => {
           timestamp: new Date().toISOString(),
           suggestion: "Verify EMAIL_USER and EMAIL_PASS on Render dashboard"
         });
-      } else {
-        console.log("✅ Email sent successfully to", mailOptions.to, "- Response:", info.response);
       }
     });
   } catch (err) {
@@ -70,8 +69,26 @@ const sendEmailAsync = (mailOptions) => {
 
 
 export const registerUser = async (req, res) => {
-  const { name, email, password } = req.body;
+  const name = normalizeWhitespace(req.body.name);
+  const email = normalizeEmail(req.body.email);
+  const password = req.body.password?.trim();
   try {
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Name, email, and password are required" });
+    }
+
+    if (!isValidName(name)) {
+      return res.status(400).json({ message: "Name should contain only letters and spaces" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
+    }
+
     let user = await User.findOne({ email });
     if (user) return res.status(400).json({ message: "User already exists" });
 
@@ -93,8 +110,13 @@ export const registerUser = async (req, res) => {
 };
 
 export const verifyOtp = async (req, res) => {
-  const { email, otp } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const otp = req.body.otp?.trim();
   try {
+    if (!isValidEmail(email) || !isValidOtp(otp)) {
+      return res.status(400).json({ message: "Enter a valid email and 4-digit OTP" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -118,8 +140,17 @@ export const verifyOtp = async (req, res) => {
 };
 
 export const loginUser = async (req, res) => {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const password = req.body.password?.trim();
   try {
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
@@ -157,8 +188,6 @@ export const loginUser = async (req, res) => {
     user.otpExpires = otpExpires;
     await user.save();
 
-    console.log(`Login OTP saved for ${email}. Sending email asynchronously...`);
-    
     // Send email asynchronously (non-blocking)
     sendEmailAsync({
       from: process.env.EMAIL_USER,
@@ -182,8 +211,12 @@ export const loginUser = async (req, res) => {
 };
 
 export const resendOtp = async (req, res) => {
-  const { email } = req.body;
+  const email = normalizeEmail(req.body.email);
   try {
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -220,8 +253,6 @@ export const resendOtp = async (req, res) => {
 export const getUserProfile = async (req, res) => {
   try {
     const userId = getUserIdFromReq(req);
-    console.log("👤 getUserProfile called - JWT payload:", req.user);
-    console.log("👤 Extracted userId:", userId);
     
     if (!userId) {
       console.error("❌ Invalid token payload - missing id/_id/userId. Received:", req.user);
@@ -237,7 +268,11 @@ export const getUserProfile = async (req, res) => {
 };
 
 export const updateUserProfile = async (req, res) => {
-  const { name, phone, address, city, pincode } = req.body;
+  const name = req.body.name !== undefined ? normalizeWhitespace(req.body.name) : undefined;
+  const phone = req.body.phone !== undefined ? req.body.phone.trim() : undefined;
+  const address = req.body.address !== undefined ? normalizeWhitespace(req.body.address) : undefined;
+  const city = req.body.city !== undefined ? normalizeWhitespace(req.body.city) : undefined;
+  const pincode = req.body.pincode !== undefined ? req.body.pincode.trim() : undefined;
   try {
     const userId = getUserIdFromReq(req);
     if (!userId) {
@@ -247,11 +282,36 @@ export const updateUserProfile = async (req, res) => {
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    if (address) user.address = address;
-    if (city) user.city = city;
-    if (pincode) user.pincode = pincode;
+    if (name !== undefined) {
+      if (!name) return res.status(400).json({ message: "Name is required" });
+      if (!isValidName(name)) {
+        return res.status(400).json({ message: "Name should contain only letters and spaces" });
+      }
+      user.name = name;
+    }
+
+    if (phone !== undefined) {
+      if (phone && !isValidPhone(phone)) {
+        return res.status(400).json({ message: "Enter a valid 10-digit mobile number starting with 6 to 9" });
+      }
+      user.phone = phone;
+    }
+
+    if (address !== undefined) user.address = address;
+
+    if (city !== undefined) {
+      if (city && !isValidName(city)) {
+        return res.status(400).json({ message: "City should contain only letters and spaces" });
+      }
+      user.city = city;
+    }
+
+    if (pincode !== undefined) {
+      if (pincode && !isValidPincode(pincode)) {
+        return res.status(400).json({ message: "Enter a valid 6-digit pincode" });
+      }
+      user.pincode = pincode;
+    }
 
     await user.save();
     const updatedUser = await User.findById(userId).select("-password");
@@ -262,7 +322,6 @@ export const updateUserProfile = async (req, res) => {
 };
 
 export const uploadProfilePic = async (req, res) => {
-  console.log("uploadProfilePic controller reached. File:", req.file?.originalname);
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
@@ -277,7 +336,6 @@ export const uploadProfilePic = async (req, res) => {
     // Delete old profile pic from Cloudinary if it exists
     if (user.profilePic_public_id) {
       await deleteFromCloudinary(user.profilePic_public_id);
-      console.log("✅ Deleted old profile pic from Cloudinary");
     }
 
     // Use file buffer directly from memory storage (no disk operations needed)
@@ -287,7 +345,6 @@ export const uploadProfilePic = async (req, res) => {
       user.profilePic = result.url;
       user.profilePic_public_id = result.public_id;
       await user.save();
-      console.log("✅ Profile picture URL saved:", result.url);
     } else {
       return res.status(500).json({ message: "Failed to upload image to Cloudinary" });
     }
@@ -310,9 +367,12 @@ export const getAllUsers = async (req, res) => {
 };
 
 export const forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  const email = normalizeEmail(req.body.email);
   try {
     if (!email) return res.status(400).json({ message: "Email is required" });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
@@ -351,10 +411,24 @@ export const forgotPassword = async (req, res) => {
 };
 
 export const resetPassword = async (req, res) => {
-  const { email, code, newPassword } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const code = req.body.code?.trim();
+  const newPassword = req.body.newPassword?.trim();
   try {
     if (!email || !code || !newPassword) {
       return res.status(400).json({ message: "Email, code, and new password are required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
+    }
+
+    if (!isValidOtp(code)) {
+      return res.status(400).json({ message: "Enter a valid 4-digit code" });
+    }
+
+    if (!isValidPassword(newPassword)) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long" });
     }
 
     const user = await User.findOne({ email });
@@ -385,10 +459,16 @@ export const resetPassword = async (req, res) => {
 };
 
 export const googleLogin = async (req, res) => {
-  const { email, name, picture } = req.body;
+  const email = normalizeEmail(req.body.email);
+  const name = req.body.name ? normalizeWhitespace(req.body.name) : "";
+  const { picture } = req.body;
   try {
     if (!email) {
       return res.status(400).json({ message: "Email is required from Google" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
     }
 
     let user = await User.findOne({ email });
@@ -441,7 +521,9 @@ export const googleLogin = async (req, res) => {
 // @route   POST /api/auth/change-password
 // @access  Private
 export const changePassword = async (req, res) => {
-  const { oldPassword, newPassword, confirmPassword } = req.body;
+  const oldPassword = req.body.oldPassword?.trim();
+  const newPassword = req.body.newPassword?.trim();
+  const confirmPassword = req.body.confirmPassword?.trim();
   
   try {
     // Validate new password and confirmation
@@ -453,7 +535,7 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ message: "New passwords do not match" });
     }
 
-    if (newPassword.length < 6) {
+    if (!isValidPassword(newPassword)) {
       return res.status(400).json({ message: "Password must be at least 6 characters long" });
     }
 
@@ -484,9 +566,6 @@ export const changePassword = async (req, res) => {
       if (newPassword === oldPassword) {
         return res.status(400).json({ message: "New password must be different from current password" });
       }
-    } else {
-      // For Google users setting password for the first time
-      console.log(`✅ Google user ${user.email} setting password for the first time`);
     }
 
     // Hash new password

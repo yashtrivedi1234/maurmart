@@ -1,4 +1,5 @@
 import { Newsletter } from "../models/newsletter.model.js";
+import { isValidEmail, normalizeEmail } from "../utils/validation.js";
 
 export const getNewsletters = async (req, res) => {
   try {
@@ -11,10 +12,14 @@ export const getNewsletters = async (req, res) => {
 
 export const subscribeNewsletter = async (req, res) => {
   try {
-    const { email } = req.body;
+    const email = normalizeEmail(req.body.email);
     
     if (!email) {
       return res.status(400).json({ message: "Email is required" });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: "Enter a valid email address" });
     }
 
     const existingSubscriber = await Newsletter.findOne({ email });

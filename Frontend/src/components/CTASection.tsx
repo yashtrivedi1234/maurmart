@@ -3,6 +3,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useSubscribeNewsletterMutation } from "@/store/api/newsletterApi";
+import { isValidEmail, normalizeEmail } from "@/lib/validation";
 
 const CTASection = () => {
   const { toast } = useToast();
@@ -11,9 +12,13 @@ const CTASection = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmed = email.trim();
+    const trimmed = normalizeEmail(email);
     if (!trimmed) {
       toast({ title: "Please enter your email", variant: "destructive" });
+      return;
+    }
+    if (!isValidEmail(trimmed)) {
+      toast({ title: "Enter a valid email address", variant: "destructive" });
       return;
     }
     try {
@@ -47,9 +52,9 @@ const CTASection = () => {
             >
               <input
                 type="email"
-                placeholder="Enter your email"
+                placeholder="Enter your best email for offers"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value.trimStart())}
                 disabled={isLoading}
                 className="flex-1 px-5 py-3 rounded-full bg-primary-foreground/15 border border-primary-foreground/20 text-primary-foreground placeholder:text-primary-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary-foreground/30 text-sm disabled:opacity-70"
               />

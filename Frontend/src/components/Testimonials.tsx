@@ -27,14 +27,15 @@ const Testimonials = () => {
         {/* ── Header ── */}
         <div className="text-center mb-16">
           <span
-            className="inline-block text-[10px] font-bold tracking-[0.2em] uppercase mb-4 px-3 py-1 rounded-full backdrop-blur-sm"
+            className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase mb-4 px-3 py-1 rounded-full backdrop-blur-sm"
             style={{
               background: "hsl(var(--primary) / 0.1)",
               color: "hsl(var(--primary))",
               border: "1px solid hsl(var(--primary) / 0.2)",
             }}
           >
-            ★ Verified Reviews
+            <Star className="h-3 w-3 fill-current" />
+            Verified Reviews
           </span>
 
           <h2 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-6 leading-tight">

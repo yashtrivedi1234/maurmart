@@ -8,6 +8,7 @@ const newsletterSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       lowercase: true,
+      match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Enter a valid email address"],
     },
   },
   { timestamps: true }

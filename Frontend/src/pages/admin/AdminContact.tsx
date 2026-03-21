@@ -43,10 +43,7 @@ export default function AdminContact() {
 
   const handleStatusChange = async (id: string, newStatus: string) => {
     try {
-      console.log("🚀 Updating contact status...");
-      console.log("📤 API call: PATCH /api/contact/", id, "status:", newStatus);
       await updateStatus({ id, status: newStatus }).unwrap();
-      console.log("✅ Contact status updated successfully");
     } catch (error: any) {
       console.error("❌ Error:", error);
       alert("Error updating status: " + (error?.data?.message || error?.message));
@@ -55,10 +52,7 @@ export default function AdminContact() {
 
   const handleDelete = async (id: string) => {
     try {
-      console.log("🚀 Deleting contact...");
-      console.log("📤 API call: DELETE /api/contact/", id);
       await deleteContact(id).unwrap();
-      console.log("✅ Contact deleted successfully");
     } catch (error: any) {
       console.error("❌ Error:", error);
       alert("Error deleting contact: " + (error?.data?.message || error?.message));
@@ -134,6 +128,7 @@ export default function AdminContact() {
                 <div>
                   <p className="font-semibold text-foreground">{contact.name}</p>
                   <p className="text-sm text-muted-foreground">{contact.email}</p>
+                  <p className="text-sm text-muted-foreground">{contact.phone}</p>
                 </div>
                 <Badge className={statusColors[contact.status].bg}>
                   <span className={statusColors[contact.status].text}>
@@ -161,6 +156,7 @@ export default function AdminContact() {
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                           <div><p className="text-sm font-medium text-muted-foreground">Name</p><p>{selectedContact.name}</p></div>
                           <div><p className="text-sm font-medium text-muted-foreground">Email</p><p>{selectedContact.email}</p></div>
+                          <div><p className="text-sm font-medium text-muted-foreground">Phone</p><p>{selectedContact.phone}</p></div>
                           <div className="sm:col-span-2"><p className="text-sm font-medium text-muted-foreground">Subject</p><p>{selectedContact.subject || "—"}</p></div>
                         </div>
                         <div><p className="text-sm font-medium text-muted-foreground mb-2">Message</p><div className="bg-muted p-4 rounded-lg whitespace-pre-wrap text-sm">{selectedContact.message}</div></div>
@@ -195,6 +191,7 @@ export default function AdminContact() {
             <TableRow>
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
+              <TableHead>Phone</TableHead>
               <TableHead>Subject</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
@@ -204,7 +201,7 @@ export default function AdminContact() {
           <TableBody>
             {contacts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                   No contact messages yet
                 </TableCell>
               </TableRow>
@@ -213,6 +210,7 @@ export default function AdminContact() {
                 <TableRow key={contact._id}>
                   <TableCell className="font-medium">{contact.name}</TableCell>
                   <TableCell>{contact.email}</TableCell>
+                  <TableCell>{contact.phone}</TableCell>
                   <TableCell className="max-w-xs truncate">{contact.subject || "—"}</TableCell>
                   <TableCell>{formatDate(contact.createdAt)}</TableCell>
                   <TableCell>
@@ -250,6 +248,10 @@ export default function AdminContact() {
                               <div>
                                 <p className="text-sm font-medium text-muted-foreground">Email</p>
                                 <p className="text-foreground">{selectedContact.email}</p>
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">Phone</p>
+                                <p className="text-foreground">{selectedContact.phone}</p>
                               </div>
                               <div className="col-span-2">
                                 <p className="text-sm font-medium text-muted-foreground">Subject</p>

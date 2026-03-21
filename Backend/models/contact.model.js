@@ -13,6 +13,12 @@ const contactSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
     },
+    phone: {
+      type: String,
+      required: true,
+      trim: true,
+      match: [/^[6-9]\d{9}$/, "Phone number must be 10 digits and start with 6 to 9"],
+    },
     subject: {
       type: String,
       trim: true,

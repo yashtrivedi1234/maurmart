@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,6 +9,7 @@ import Logo from "@/assets/logo.png";
 import { GoogleLogin } from "@react-oauth/google";
 
 import { useLoginMutation, useRegisterMutation, useVerifyOtpMutation, useResendOtpMutation, useForgotPasswordMutation, useResetPasswordMutation } from "@/store/api/authApi";
+import { isValidEmail, isValidName, isValidOtp, isValidPassword, normalizeEmail, normalizeWhitespace, sanitizeNameInput, sanitizeOtpInput } from "@/lib/validation";
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -63,10 +64,6 @@ const Login = () => {
       const result = await response.json();
 
       if (result.token) {
-        console.log("✅ Google login successful!");
-        console.log("📝 Storing token:", result.token.substring(0, 50) + "...");
-        console.log("👤 User data:", result.user);
-        
         // Clear any old admin token to avoid conflicts
         localStorage.removeItem("adminToken");
         
@@ -74,8 +71,6 @@ const Login = () => {
         if (result.user) {
           localStorage.setItem('user', JSON.stringify(result.user));
         }
-        
-        console.log("🔔 Dispatching tokenChanged event...");
         window.dispatchEvent(new Event('tokenChanged'));
         
         toast({
@@ -109,8 +104,19 @@ const Login = () => {
   };
 
   const handleResendOtp = async () => {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!isValidEmail(normalizedEmail)) {
+      toast({
+        title: "Error",
+        description: "Enter a valid email address first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      await resendOtp(email).unwrap();
+      await resendOtp(normalizedEmail).unwrap();
       toast({
         title: "Code Resent",
         description: "A new verification code has been sent to your email.",
@@ -127,12 +133,18 @@ const Login = () => {
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) {
+    const normalizedEmail = normalizeEmail(email);
+
+    if (!normalizedEmail) {
       toast({ title: "Please enter your email", variant: "destructive" });
       return;
     }
+    if (!isValidEmail(normalizedEmail)) {
+      toast({ title: "Enter a valid email address", variant: "destructive" });
+      return;
+    }
     try {
-      await forgotPassword(email).unwrap();
+      await forgotPassword(normalizedEmail).unwrap();
       toast({ title: "Code sent!", description: "Check your email for the reset code." });
       setIsResettingPassword(true);
     } catch (err: unknown) {
@@ -147,8 +159,23 @@ const Login = () => {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedOtp = otp.trim();
+
     if (!password || !confirmPassword) {
       toast({ title: "Please fill all fields", variant: "destructive" });
+      return;
+    }
+    if (!isValidEmail(normalizedEmail)) {
+      toast({ title: "Enter a valid email address", variant: "destructive" });
+      return;
+    }
+    if (!isValidOtp(normalizedOtp)) {
+      toast({ title: "Enter a valid 4-digit code", variant: "destructive" });
+      return;
+    }
+    if (!isValidPassword(password)) {
+      toast({ title: "Password must be at least 6 characters long", variant: "destructive" });
       return;
     }
     if (password !== confirmPassword) {
@@ -156,7 +183,7 @@ const Login = () => {
       return;
     }
     try {
-      await resetPassword({ email, code: otp, newPassword: password }).unwrap();
+      await resetPassword({ email: normalizedEmail, code: normalizedOtp, newPassword: password }).unwrap();
       toast({ title: "Password reset successful!", description: "You can now log in with your new password." });
       setIsForgotPassword(false);
       setIsResettingPassword(false);
@@ -176,9 +203,22 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedName = normalizeWhitespace(name);
+    const normalizedOtp = otp.trim();
+
     try {
       if (isVerifying) {
-        const result = await verifyOtp({ email, otp }).unwrap();
+        if (!isValidEmail(normalizedEmail)) {
+          toast({ title: "Enter a valid email address", variant: "destructive" });
+          return;
+        }
+        if (!isValidOtp(normalizedOtp)) {
+          toast({ title: "Enter a valid 4-digit code", variant: "destructive" });
+          return;
+        }
+
+        const result = await verifyOtp({ email: normalizedEmail, otp: normalizedOtp }).unwrap();
         localStorage.removeItem("adminToken"); // Clear old admin token
         localStorage.setItem("token", result.token);
         if (result.user) {
@@ -191,14 +231,40 @@ const Login = () => {
         });
         navigate("/");
       } else if (isSignUp) {
-        const result = await register({ name, email, password }).unwrap();
+        if (!normalizedName || !normalizedEmail || !password) {
+          toast({ title: "Please fill in all fields", variant: "destructive" });
+          return;
+        }
+        if (!isValidName(normalizedName)) {
+          toast({ title: "Name should contain only letters", variant: "destructive" });
+          return;
+        }
+        if (!isValidEmail(normalizedEmail)) {
+          toast({ title: "Enter a valid email address", variant: "destructive" });
+          return;
+        }
+        if (!isValidPassword(password)) {
+          toast({ title: "Password must be at least 6 characters long", variant: "destructive" });
+          return;
+        }
+
+        const result = await register({ name: normalizedName, email: normalizedEmail, password }).unwrap();
         toast({
           title: "Account Created",
           description: result.message || "Please sign in to verify your account.",
         });
         setIsSignUp(false);
       } else {
-        const result = await login({ email, password }).unwrap();
+        if (!normalizedEmail || !password) {
+          toast({ title: "Please fill in all fields", variant: "destructive" });
+          return;
+        }
+        if (!isValidEmail(normalizedEmail)) {
+          toast({ title: "Enter a valid email address", variant: "destructive" });
+          return;
+        }
+
+        const result = await login({ email: normalizedEmail, password }).unwrap();
         if (result.needsVerification) {
           toast({
             title: "Verification Required",
@@ -248,9 +314,9 @@ const Login = () => {
             Shop groceries, electronics, and everyday products at the best prices. Join thousands of happy customers.
           </p>
           <div className="mt-10 flex gap-6 text-primary-foreground/60 text-sm">
-            <span>✓ Free Delivery</span>
-            <span>✓ Secure Payments</span>
-            <span>✓ Easy Returns</span>
+            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Free Delivery</span>
+            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Secure Payments</span>
+            <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Easy Returns</span>
           </div>
         </div>
       </div>
@@ -298,9 +364,9 @@ const Login = () => {
                     <Label htmlFor="reset-code">Verification Code</Label>
                     <Input
                       id="reset-code"
-                      placeholder="1234"
+                      placeholder="4-digit reset code"
                       value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
+                      onChange={(e) => setOtp(sanitizeOtpInput(e.target.value))}
                       required
                       maxLength={4}
                       className="h-11 text-center text-2xl tracking-[1em]"
@@ -312,7 +378,7 @@ const Login = () => {
                       <Input
                         id="new-password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
+                        placeholder="Enter your new password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -333,7 +399,7 @@ const Login = () => {
                     <Input
                       id="confirm-password"
                       type="password"
-                      placeholder="••••••••"
+                      placeholder="Re-enter your new password"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       required
@@ -348,9 +414,9 @@ const Login = () => {
                   <Input
                     id="forget-email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="registered.email@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.trimStart())}
                     required
                     className="h-11"
                   />
@@ -361,9 +427,9 @@ const Login = () => {
                 <Label htmlFor="otp">Verification Code</Label>
                 <Input
                   id="otp"
-                  placeholder="1234"
+                  placeholder="4-digit verification code"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => setOtp(sanitizeOtpInput(e.target.value))}
                   required
                   maxLength={4}
                   className="h-11 text-center text-2xl tracking-[1em]"
@@ -386,9 +452,9 @@ const Login = () => {
                     <Label htmlFor="name">Full Name</Label>
                     <Input
                       id="name"
-                      placeholder="Yash Trivedi"
+                      placeholder="Aman Verma"
                       value={name}
-                      onChange={(e) => setName(e.target.value)}
+                      onChange={(e) => setName(sanitizeNameInput(e.target.value))}
                       required
                       className="h-11"
                     />
@@ -399,9 +465,9 @@ const Login = () => {
                   <Input
                     id="email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="aman.verma@example.com"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => setEmail(e.target.value.trimStart())}
                     required
                     className="h-11"
                   />
@@ -412,7 +478,7 @@ const Login = () => {
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
+                      placeholder="Minimum 6 characters"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required

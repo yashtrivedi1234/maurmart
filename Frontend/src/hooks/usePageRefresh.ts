@@ -29,7 +29,6 @@ export const usePageRefresh = ({ page, onRefresh }: UsePageRefreshProps) => {
 
       // Trigger refresh if event is for this page or all pages
       if (refreshPage === page || refreshPage === "all") {
-        console.log(`🔄 Refreshing ${page}...`);
         onRefresh();
       }
     };

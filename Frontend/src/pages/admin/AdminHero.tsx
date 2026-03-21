@@ -26,6 +26,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
+import { normalizeWhitespace } from "@/lib/validation";
 
 interface HeroSlide {
   _id: string;
@@ -86,14 +87,24 @@ const AdminHero = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        badge: normalizeWhitespace(currentSlide.badge || ""),
+        heading: normalizeWhitespace(currentSlide.heading || ""),
+        highlight: normalizeWhitespace(currentSlide.highlight || ""),
+        sub: normalizeWhitespace(currentSlide.sub || ""),
+      };
+
+      if (!payload.heading || !payload.highlight || !payload.sub) {
+        toast.error("Heading, highlight, and description are required");
+        return;
+      }
+
       setIsSubmitting(true);
-      console.log("🚀 Creating hero slide...");
-      console.log("📤 API call: POST /api/hero/");
       const formData = new FormData();
-      formData.append("badge", currentSlide.badge || "");
-      formData.append("heading", currentSlide.heading || "");
-      formData.append("highlight", currentSlide.highlight || "");
-      formData.append("sub", currentSlide.sub || "");
+      formData.append("badge", payload.badge);
+      formData.append("heading", payload.heading);
+      formData.append("highlight", payload.highlight);
+      formData.append("sub", payload.sub);
       if (selectedFile) {
         formData.append("image", selectedFile);
       } else {
@@ -101,7 +112,6 @@ const AdminHero = () => {
       }
 
       await createHeroSlide(formData).unwrap();
-      console.log("✅ Hero slide created successfully");
       toast.success("Hero slide added successfully");
       setIsAddDialogOpen(false);
       resetForm();
@@ -116,20 +126,29 @@ const AdminHero = () => {
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const payload = {
+        badge: normalizeWhitespace(currentSlide.badge || ""),
+        heading: normalizeWhitespace(currentSlide.heading || ""),
+        highlight: normalizeWhitespace(currentSlide.highlight || ""),
+        sub: normalizeWhitespace(currentSlide.sub || ""),
+      };
+
+      if (!payload.heading || !payload.highlight || !payload.sub) {
+        toast.error("Heading, highlight, and description are required");
+        return;
+      }
+
       setIsSubmitting(true);
-      console.log("🚀 Updating hero slide...");
-      console.log("📤 API call: PATCH /api/hero/", currentSlide._id);
       const formData = new FormData();
-      formData.append("badge", currentSlide.badge || "");
-      formData.append("heading", currentSlide.heading || "");
-      formData.append("highlight", currentSlide.highlight || "");
-      formData.append("sub", currentSlide.sub || "");
+      formData.append("badge", payload.badge);
+      formData.append("heading", payload.heading);
+      formData.append("highlight", payload.highlight);
+      formData.append("sub", payload.sub);
       if (selectedFile) {
         formData.append("image", selectedFile);
       }
 
       await updateHeroSlide({ id: currentSlide._id!, formData }).unwrap();
-      console.log("✅ Hero slide updated successfully");
       toast.success("Hero slide updated successfully");
       setIsEditDialogOpen(false);
       resetForm();
@@ -151,10 +170,7 @@ const AdminHero = () => {
   const handleDelete = async (id: string) => {
     if (window.confirm("Are you sure you want to delete this slide?")) {
       try {
-        console.log("🚀 Deleting hero slide...");
-        console.log("📤 API call: DELETE /api/hero/", id);
         await deleteHeroSlide(id).unwrap();
-        console.log("✅ Hero slide deleted successfully");
         toast.success("Slide deleted successfully");
       } catch (err) {
         console.error("❌ Error:", err);
@@ -192,21 +208,21 @@ const AdminHero = () => {
             <form onSubmit={handleCreate} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="badge">Badge Text</Label>
-                <Input id="badge" value={currentSlide.badge} onChange={(e) => setCurrentSlide({...currentSlide, badge: e.target.value})} placeholder="e.g. 🛒 Free Delivery..." />
+                <Input id="badge" value={currentSlide.badge} onChange={(e) => setCurrentSlide({...currentSlide, badge: e.target.value})} placeholder="Free delivery on daily essentials" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="heading">Primary Heading</Label>
-                  <Input id="heading" required value={currentSlide.heading} onChange={(e) => setCurrentSlide({...currentSlide, heading: e.target.value})} placeholder="e.g. Your Daily Essentials," />
+                  <Input id="heading" required value={currentSlide.heading} onChange={(e) => setCurrentSlide({...currentSlide, heading: e.target.value})} placeholder="Fresh groceries and essentials" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="highlight">Highlighted Text</Label>
-                  <Input id="highlight" required value={currentSlide.highlight} onChange={(e) => setCurrentSlide({...currentSlide, highlight: e.target.value})} placeholder="e.g. Delivered Fast" />
+                  <Input id="highlight" required value={currentSlide.highlight} onChange={(e) => setCurrentSlide({...currentSlide, highlight: e.target.value})} placeholder="Delivered quickly" />
                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="sub">Subtext / Description</Label>
-                <Textarea id="sub" required value={currentSlide.sub} onChange={(e) => setCurrentSlide({...currentSlide, sub: e.target.value})} placeholder="Describe your shop..." />
+                <Textarea id="sub" required value={currentSlide.sub} onChange={(e) => setCurrentSlide({...currentSlide, sub: e.target.value})} placeholder="Highlight fast delivery, trusted quality, and value for everyday shopping." />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="image">Background Image</Label>
