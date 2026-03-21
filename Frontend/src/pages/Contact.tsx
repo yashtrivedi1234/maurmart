@@ -8,10 +8,13 @@ import { useToast } from "@/hooks/use-toast";
 import { useSubmitContactMutation } from "@/store/api/contactApi";
 import { isValidEmail, isValidName, isValidPhone, normalizeEmail, normalizeWhitespace, sanitizeNameInput, sanitizePhoneInput } from "@/lib/validation";
 
+const MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=Preeti+Nagar,+Raheem+Nagar,+Dudauli,+Sitapur+Rd,+Lucknow,+Uttar+Pradesh+226021";
+
 const contactInfo = [
   { icon: Mail, label: "Email", value: "info@maurmart.com", href: "mailto:info@maurmart.com" },
   { icon: Phone, label: "Phone", value: "+91 98765 43210", href: "tel:+919876543210" },
-  { icon: MapPin, label: "Address", value: "Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021", href: null },
+  { icon: MapPin, label: "Address", value: "Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021", href: MAPS_URL },
   { icon: Clock, label: "Working Hours", value: "Mon–Sat, 9 AM – 8 PM IST", href: null },
 ];
 
@@ -111,7 +114,12 @@ const Contact = () => {
                 </div>
                 <h3 className="font-semibold text-foreground text-sm mb-1">{label}</h3>
                 {href ? (
-                  <a href={href} className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                  <a
+                    href={href}
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="text-sm text-muted-foreground hover:text-primary transition-colors"
+                  >
                     {value}
                   </a>
                 ) : (

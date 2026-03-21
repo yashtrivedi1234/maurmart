@@ -6,7 +6,7 @@ import {
   RefreshCw, ChevronRight, Zap,
   Maximize2
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -22,7 +22,6 @@ import {
   useGetSimilarProductsQuery,
   useGetFrequentlyBoughtTogetherQuery,
   useGetComboDealQuery,
-  useGetRecommendationSummaryQuery,
 } from "@/store/api/recommendationApi";
 import RecommendationCarousel from "@/components/RecommendationCarousel";
 import ComboDealCard from "@/components/ComboDealCard";
@@ -64,6 +63,7 @@ const SectionToggle = ({ title, children, defaultOpen = false }: { title: string
 
 /* ─── Main component ─── */
 const ProductDetails = () => {
+  const RECENTLY_VIEWED_KEY = "recentlyViewedProducts";
   const { id } = useParams();
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
@@ -92,6 +92,14 @@ const ProductDetails = () => {
   const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
 
   const canReview = canReviewData?.canReview || false;
+
+  useEffect(() => {
+    if (!id || typeof window === "undefined") return;
+
+    const existingIds = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || "[]");
+    const nextIds = [id, ...existingIds.filter((productId: string) => productId !== id)].slice(0, 8);
+    localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(nextIds));
+  }, [id]);
 
   if (isLoading) {
     return (

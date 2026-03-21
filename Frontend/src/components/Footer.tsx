@@ -2,6 +2,9 @@ import { Link } from "react-router-dom";
 import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from "lucide-react";
 import Logo from "@/assets/logo.png";
 
+const MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=Preeti+Nagar,+Raheem+Nagar,+Dudauli,+Sitapur+Rd,+Lucknow,+Uttar+Pradesh+226021";
+
 const Footer = () => {
   return (
     <footer className="bg-foreground text-primary-foreground">
@@ -45,15 +48,32 @@ const Footer = () => {
             <ul className="space-y-2 text-sm text-primary-foreground/60">
               <li className="flex items-start gap-2">
                 <Mail className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>info@maurmart.com</span>
+                <a
+                  href="mailto:info@maurmart.com"
+                  className="transition-colors hover:text-primary"
+                >
+                  info@maurmart.com
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <Phone className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>+91 98765 43210</span>
+                <a
+                  href="tel:+919876543210"
+                  className="transition-colors hover:text-primary"
+                >
+                  +91 98765 43210
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <MapPin className="h-4 w-4 mt-0.5 shrink-0" />
-                <span>Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021</span>
+                <a
+                  href={MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="transition-colors hover:text-primary"
+                >
+                  Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021
+                </a>
               </li>
             </ul>
           </div>

@@ -21,6 +21,30 @@ const milestones = [
   { year: "2025", title: "Pan-India Delivery", desc: "Launched nationwide shipping, reaching customers in every corner of the country." },
 ];
 
+const MAPS_URL =
+  "https://www.google.com/maps/search/?api=1&query=Preeti+Nagar,+Raheem+Nagar,+Dudauli,+Sitapur+Rd,+Lucknow,+Uttar+Pradesh+226021";
+
+const contactItems = [
+  {
+    icon: Mail,
+    label: "Email Us",
+    value: "info@maurmart.com",
+    href: "mailto:info@maurmart.com",
+  },
+  {
+    icon: Phone,
+    label: "Call Us",
+    value: "+91 98765 43210",
+    href: "tel:+919876543210",
+  },
+  {
+    icon: MapPin,
+    label: "Location",
+    value: "Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021",
+    href: MAPS_URL,
+  },
+];
+
 const About = () => {
   return (
     <div className="min-h-screen">
@@ -173,17 +197,24 @@ const About = () => {
             <p className="text-muted-foreground max-w-lg mx-auto">We'd love to hear from you</p>
           </div>
           <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-            {[
-              { icon: Mail, label: "Email Us", value: "info@maurmart.com" },
-              { icon: Phone, label: "Call Us", value: "+91 98765 43210" },
-              { icon: MapPin, label: "Location", value: "Preeti Nagar, Raheem Nagar, Dudauli, Sitapur Rd, Lucknow, Uttar Pradesh 226021" },
-            ].map(({ icon: Icon, label, value }) => (
+            {contactItems.map(({ icon: Icon, label, value, href }) => (
               <div key={label} className="bg-card rounded-xl p-6 border border-border card-shadow text-center">
                 <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto mb-3">
                   <Icon className="h-5 w-5 text-primary" />
                 </div>
                 <h4 className="font-semibold text-foreground text-sm mb-1">{label}</h4>
-                <p className="text-sm text-muted-foreground">{value}</p>
+                {href ? (
+                  <a
+                    href={href}
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className="text-sm text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {value}
+                  </a>
+                ) : (
+                  <p className="text-sm text-muted-foreground">{value}</p>
+                )}
               </div>
             ))}
           </div>
